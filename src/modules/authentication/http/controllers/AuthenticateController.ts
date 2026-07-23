@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from '../../application/AuthenticateUserService';
+import { RefreshTokensService } from '../../application/RefreshTokensService';
 
 export class AuthenticateController {
     // 1. A Injeção de Dependência entra aqui no Construtor!
-    constructor(private readonly authenticateService: AuthenticateUserService) {}
+    constructor(
+        private readonly authenticateService: AuthenticateUserService,
+        private readonly refreshTokensService: RefreshTokensService,
+    ) {}
 
     // Usamos Arrow Function para não perder o escopo do 'this' no Express
     registerUser = async (req: Request, res: Response): Promise<Response> => {
@@ -22,5 +26,11 @@ export class AuthenticateController {
         return res.status(200).json(user);
     };
 
-    showAuthenticatedUser = async (req: Request, res: Response): Promise<Response> => {};
+    refreshToken = async (req: Request, res: Response): Promise<Response> => {
+        const { refreshToken } = req.body;
+
+        const user = await this.refreshTokensService.refresh(refreshToken);
+
+        return res.status(200).json(user);
+    };
 }
