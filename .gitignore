@@ -1,0 +1,7 @@
+# Dependências e Build
+node_modules/
+dist/
+
+# Variáveis de ambiente (Segurança inegociável)
+.env
+.env.*
