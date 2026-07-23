@@ -51,12 +51,12 @@ Os passos pragmáticos para finalizarmos o fluxo de segurança do usuário:
 
 - [x] **1. Decisão Criptográfica:**
     - [x] Escolher e instalar a biblioteca de hash para a senha (Bcrypt ou Argon2).
-- [ ] **2. Criação do Serviço de Registro (`AuthService.registerUser`):**
+- [ ] **2. Criação do Serviço de Registro (`AuthenticateUserService.registerUser`):**
     - [ ] Validar a inexistência prévia do e-mail no banco de dados.
     - [ ] Gerar o hash da senha de forma segura.
     - [ ] Salvar o novo usuário (`firstName`, `lastName`, `email`, `passwordHash`) usando o Drizzle.
     - [ ] Retornar o objeto do usuário garantindo a remoção/omissão do `passwordHash` na resposta.
-- [ ] **3. Criação do Fluxo de Login (`AuthService.loginUser`):**
+- [ ] **3. Criação do Fluxo de Login (`AuthenticateUserService.loginUser`):**
     - [ ] Buscar o usuário no banco pelo e-mail.
     - [ ] Comparar a senha fornecida com o hash armazenado.
 - [ ] **4. Estratégia de Sessão e Tokens:**

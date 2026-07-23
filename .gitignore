@@ -4,4 +4,3 @@ dist/
 
 # Variáveis de ambiente (Segurança inegociável)
 .env
-.env.*
