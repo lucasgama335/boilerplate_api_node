@@ -67,28 +67,6 @@ cd boilerplate-api
 npm install
 ```
 
-#DEV: dumpall src/ -o context.md -m "PROJECT DUMP"
+# AI TIP:
 
-# TODO
-
-O que está sem nenhum teste — por risco
-
-🔴 ensureAuthenticatedMiddleware
-Middleware que decide "essa requisição está autenticada" para toda a API, e não tem um teste sequer. Casos que faltam: sem header, token inválido/expirado, token válido mas iat < revokedAt (sessão revogada), token válido normal injetando req.user.
-
-🟠 AuthenticateController
-Teria pego o bug do token/accessToken desalinhado que você já corrigiu. Vale testar o formato da resposta de cada ação (loginUser, refreshToken, logout, revokeAllUserTokens) e as chamadas de setRefreshTokenCookie/clearCookie, sem precisar de servidor HTTP de verdade (mocka req/res).
-
-🟠 withFailOpen (rate limiter)
-Lógica de decisão de segurança: só deve cair pro fallback em memória quando o erro é de infraestrutura (Redis fora do ar), nunca quando é um 429 legítimo do AppError. Se essa distinção quebrar, ou o rate limit para de funcionar (silencia erros de infra) ou passa a bloquear gente por engano.
-
-🟡 authentication.schemas.ts (Zod)
-Barato de testar e alto valor: regex de senha, normalização de e-mail, capitalização de nome, confirmação de senha. Validação de borda (senha sem maiúscula, sem caractere especial, passwordConfirmation diferente) é fácil de testar isolado.
-
-🟢 errorHandler middleware
-Mapeamento de status code por tipo de erro (AppError, ZodError, erro não tratado → 500 + Sentry). Baixo risco, mas rápido de cobrir.
-
-🟢 TokenProvider
-Roundtrip de generate/verify, e garantir que só aceita HS256 (proteção contra algorithm confusion attack).
-
-Não recomendo priorizar HashProvider, GeolocationProvider e UserAgentProvider agora — são wrappers finos em cima de libs de terceiro, testar ali é testar a lib, não a sua lógica.
+- dumpall src/ -o context.md -m "PROJECT DUMP"
