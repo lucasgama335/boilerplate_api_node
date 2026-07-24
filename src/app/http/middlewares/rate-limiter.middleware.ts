@@ -62,7 +62,7 @@ export const accountLimiterRedis = rateLimit({
                 throw error;
             }
         }) as SendCommandFn,
-        prefix: 'rl:auth:ip:',
+        prefix: 'rl:auth:account:',
     }),
     handler: rateLimitHandler,
 });

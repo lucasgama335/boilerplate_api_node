@@ -45,7 +45,11 @@ export class AuthenticateController {
     logout = async (req: Request, res: Response): Promise<Response> => {
         const refreshToken = req.cookies?.refreshToken;
 
-        await this.refreshTokensService.refresh(refreshToken);
+        try {
+            await this.authenticateService.revokeByRawToken(refreshToken);
+        } catch (_error) {
+            /* empty */
+        }
 
         res.clearCookie('refreshToken', { path: '/api/auth' });
         return res.status(204).send();

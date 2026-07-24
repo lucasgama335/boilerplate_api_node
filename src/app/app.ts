@@ -7,7 +7,7 @@ import { errorHandler } from './http/middlewares/error-handler-middleware';
 export const app = express();
 
 // Middlewares globais básicos
-app.set('trust proxy', 1);
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 0); // Número reais de proxys que batem na API
 app.use(
     cors({
         origin: process.env.FRONTEND_URL, // nunca '*' quando usa cookies/credentials
