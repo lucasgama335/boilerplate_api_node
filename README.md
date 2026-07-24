@@ -1,66 +1,68 @@
-# 🚀 Secure Node.js Boilerplate API
+# 🚀 Node.js Secure Boilerplate API
 
-## 📌 Sobre o Projeto
+Um boilerplate de API Node.js pronto para produção, construído com foco extremo em **Segurança**, **Performance** e **Arquitetura Limpa**.
 
-Este é um boilerplate moderno, seguro e escalável para APIs em Node.js com TypeScript. O objetivo é servir como uma fundação robusta e reutilizável para projetos futuros, abstraindo a configuração inicial e garantindo as melhores práticas de segurança e engenharia de software desde o dia zero.
+Ideal para iniciar novos projetos sem precisar reescrever fluxos complexos de autenticação, proteção contra ataques ou configurações de banco de dados.
 
-## 🧠 Nossa Filosofia de Arquitetura
+## ✨ Funcionalidades em Destaque
 
-- **Controle e Transparência:** Rejeitamos "caixas pretas" e ferramentas que tentam sequestrar a infraestrutura. Preferimos ferramentas limpas, transparentes e baseadas em código (Code-First), mantendo o domínio total sobre o nosso repositório.
-- **Manutenibilidade:** Foco em tipagem forte (TypeScript ponta a ponta) para que o projeto possa ser mantido com facilidade e segurança por um único desenvolvedor a longo prazo.
-- **Segurança por Padrão (Security-First):**
-    - Uso de UUIDs como chaves primárias para evitar ataques de enumeração (IDOR).
-    - Nomes explícitos no banco (ex: `password_hash`) para evitar vazamento acidental.
-    - Deleção em cascata (`CASCADE`) para não deixar dados órfãos de sessões de usuários removidos.
-- **Produtividade sem Magia:** Arquitetura SQL-like previsível sem o _overhead_ de decorators manuais, unindo a velocidade de desenvolvimento ao controle fino do banco de dados.
+- **Autenticação Robusta:** Sistema completo de Login e Registro com JWT (Access Token) e Refresh Tokens rotativos (com hash no banco de dados).
+- **Segurança Avançada:**
+    - Proteção contra _Timing Attacks_ (Enumeração de Usuários) utilizando hashes dummy.
+    - Criptografia de senhas utilizando Argon2.
+    - Auditoria de segurança com registro de tentativas de login (Sucesso/Falha) para bloqueio de Força Bruta.
+- **Rate Limiting Resiliente (Fail-Open):** Limitação de requisições por IP e por Conta utilizando **Redis**. Caso a infraestrutura do Redis caia, o sistema faz um _fallback_ automático e transparente para a memória local, garantindo que a API continue funcionando sem travar os usuários legítimos.
+- **Arquitetura Limpa (Clean Architecture):** Separação clara de responsabilidades (Controllers, Services, Repositories, Domain) utilizando Injeção de Dependências (Composition Root).
+- **Validação de Dados:** Middlewares dedicados para validação rigorosa de _inputs_.
+- **Tratamento de Erros Centralizado:** Captura de exceções assíncronas de forma padronizada.
 
-## 📦 Dependências (Stack Atual)
+## 🛠️ Tecnologias Utilizadas
 
-A fundação foi construída de forma enxuta, focando em performance, modernidade e ausência de atrito.
+- **Linguagem:** TypeScript / Node.js
+- **Framework HTTP:** Express
+- **Banco de Dados:** PostgreSQL
+- **ORM:** Drizzle ORM
+- **Cache / Rate Limit:** Redis (ioredis + express-rate-limit)
+- **Infraestrutura:** Docker & Docker Compose
 
-**Produção (`dependencies`):**
+---
 
-- `express`: Framework web minimalista e flexível para a criação da API.
-- `cors`: Middleware para gerenciar permissões de acesso externo à API.
-- `drizzle-orm`: ORM moderno, tipado e extremamente leve (Zero interferência no terminal).
-- `pg`: Driver nativo do PostgreSQL para Node.js.
-- `dotenv`: Gerenciamento de variáveis de ambiente.
-- `argon2`: Padrão-ouro moderno para hash de senhas (resistente a ataques de GPU/hardware).
-- `zod`: Validação e sanitização de dados com inferência de tipos (Schema declaration).
+## 📜 Scripts Disponíveis (Comandos Úteis)
 
-**Desenvolvimento (`devDependencies`):**
+No diretório raiz do projeto, você pode executar os seguintes comandos através do seu gerenciador de pacotes (npm, yarn, pnpm):
 
-- `typescript`: Tipagem estática estrutural do projeto.
-- `drizzle-kit`: CLI para gerenciamento e geração das migrações do banco de dados.
-- `tsx`: Execução de TypeScript nativo com hot-reload (uma alternativa superior e mais rápida ao nodemon + ts-node).
-- `@types/node`, `@types/pg`, `@types/express`, `@types/cors`: Definições de tipos da stack.
+### 💻 Desenvolvimento
 
-## ⌨️ Atalhos de Comandos (`scripts`)
+- `npm run dev`: Inicia o servidor em ambiente de desenvolvimento com hot-reload (tsx/ts-node-dev).
+- `npm run build`: Transpila o código TypeScript para JavaScript na pasta de saída (ex: `dist`).
+- `npm start`: Inicia o servidor para o ambiente de produção (necessário rodar o build antes).
+- `npm run lint`: Executa o ESLint para encontrar e corrigir problemas de formatação no código.
 
-Os comandos foram encapsulados no `package.json` para servir como documentação viva e painel de controle do banco de dados:
+### 🗄️ Banco de Dados (Drizzle ORM)
 
-- **`npm run dev`** → Inicia o servidor de desenvolvimento com hot-reload (observando alterações via `tsx`).
-- **`npm run db:push`** → Sincroniza o esquema TypeScript diretamente com o banco de dados. (Modo Prototipagem Rápida: ideal para testes locais).
-- **`npm run db:generate`** → Lê o `schema.ts` e gera o arquivo SQL de migração oficial e versionado na pasta `drizzle`.
-- **`npm run db:migrate`** → Executa os arquivos SQL gerados no banco de dados para atualizar a estrutura de forma definitiva e segura (Modo Produção Seguro).
-- **`npm run db:studio`** → Ferramenta de interface gráfica de visualização de banco de dados do drizzle-orm.
+- `npm run db:generate`: Gera os arquivos SQL de migration baseados nas alterações feitas no seu `schema.ts`.
+- `npm run db:push`: Aplica as alterações do schema diretamente no banco de dados (ideal para desenvolvimento rápido).
+- `npm run db:migrate`: Executa as migrations geradas no banco de dados de forma segura.
+- `npm run db:studio`: Abre o painel visual do Drizzle Studio no seu navegador para gerenciar as tabelas e dados facilmente.
 
-## 🎯 To-Do List: Módulo de Autenticação (Fase Atual)
+## 🚀 Como começar
 
-Os passos pragmáticos para finalizarmos o fluxo de segurança do usuário:
+### Pré-requisitos
 
-- [x] **1. Decisão Criptográfica:**
-    - [x] Escolher e instalar a biblioteca de hash para a senha (Bcrypt ou Argon2).
-- [ ] **2. Criação do Serviço de Registro (`AuthenticateUserService.registerUser`):**
-    - [ ] Validar a inexistência prévia do e-mail no banco de dados.
-    - [ ] Gerar o hash da senha de forma segura.
-    - [ ] Salvar o novo usuário (`firstName`, `lastName`, `email`, `passwordHash`) usando o Drizzle.
-    - [ ] Retornar o objeto do usuário garantindo a remoção/omissão do `passwordHash` na resposta.
-- [ ] **3. Criação do Fluxo de Login (`AuthenticateUserService.loginUser`):**
-    - [ ] Buscar o usuário no banco pelo e-mail.
-    - [ ] Comparar a senha fornecida com o hash armazenado.
-- [ ] **4. Estratégia de Sessão e Tokens:**
-    - [ ] Implementar geração de Access Tokens (JWT de curta duração) para uso nas rotas.
-    - [ ] Implementar geração e persistência de Refresh Tokens (longa duração) na tabela `refresh_tokens`.
-- [ ] **5. Proteção de Rotas (Middleware):**
-    - [ ] Criar o middleware de autenticação para validar o JWT nos cabeçalhos (Headers) das requisições privadas.
+Certifique-se de ter instalado em sua máquina:
+
+- [Node.js](https://nodejs.org/en/) (v18+ recomendado)
+- [Docker e Docker Compose](https://www.docker.com/)
+
+### 1. Clonando e Instalando
+
+```bash
+# Clone o repositório
+git clone [https://github.com/seu-usuario/boilerplate-api.git](https://github.com/seu-usuario/boilerplate-api.git)
+
+# Entre no diretório
+cd boilerplate-api
+
+# Instale as dependências
+npm install
+```
