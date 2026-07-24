@@ -18,7 +18,7 @@ export class AuthenticateController {
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
-        const userAgentString = req.headers['user-agent'] ?? 'unknow';
+        const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
         const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password }, ipAddress, userAgentString);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
@@ -62,14 +62,14 @@ export class AuthenticateController {
         const keepCurrentSession = req.body?.keepCurrentSession || false;
 
         // Recupera o Refresh Token atual do cookie
-        const refreshTokenString = req.cookies.refreshToken;
+        const refreshTokenString = req.cookies?.refreshToken;
 
         // Executa o caso de uso
         const { accessToken } = await this.authenticateService.revokeSessionsService(userId, keepCurrentSession, refreshTokenString);
 
         // Se 'accessToken' é nulo, significa que foi um LOGOUT GLOBAL.
         if (!accessToken) {
-            res.clearCookie('refreshToken', { path: '/' }); // Limpa o cookie do navegador
+            res.clearCookie('refreshToken', { path: '/api/auth' });
             return res.json({ message: 'Você foi desconectado de todos os dispositivos.' });
         }
 
