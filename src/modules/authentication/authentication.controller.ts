@@ -34,7 +34,7 @@ export class AuthenticateController {
         }
 
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
-        const userAgentString = req.headers['user-agent'] ?? 'unknow';
+        const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
         const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.authenticateService.refresh(refreshToken, ipAddress, userAgentString);
         setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);
