@@ -73,9 +73,6 @@ npm install
 
 O que está sem nenhum teste — por risco
 
-🔴 TokenValidityProvider (cache Redis)
-Zero cobertura. É a mesma classe de risco do bug que já corrigimos: lógica de cache com serialização manual (cached === 'null' ? null : new Date(...)), fail-open silencioso quando o Redis cai, e invalidação de cache no revokeAllTokens. Se essa comparação de string tiver um erro sutil, o efeito é idêntico ao bug anterior — revogação que não revoga nada, ou pior, usuário revogado que nunca mais consegue acessar por cache não invalidado corretamente.
-
 🔴 ensureAuthenticatedMiddleware
 Middleware que decide "essa requisição está autenticada" para toda a API, e não tem um teste sequer. Casos que faltam: sem header, token inválido/expirado, token válido mas iat < revokedAt (sessão revogada), token válido normal injetando req.user.
 
