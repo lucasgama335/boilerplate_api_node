@@ -1,3 +1,4 @@
+import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from '../../application/AuthenticateUserService';
 import { RefreshTokensService } from '../../application/RefreshTokensService';
@@ -21,16 +22,29 @@ export class AuthenticateController {
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
 
-        const user = await this.authenticateService.loginUser({ email, password });
+        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password });
+        setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
 
-        return res.status(200).json(user);
+        return res.status(200).json({ user, token });
     };
 
     refreshToken = async (req: Request, res: Response): Promise<Response> => {
         const { refreshToken } = req.body;
 
-        const user = await this.refreshTokensService.refresh(refreshToken);
+        const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.refreshTokensService.refresh(refreshToken);
+        setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);
 
-        return res.status(200).json(user);
+        return res.status(200).json({ token });
+    };
+
+    logout = async (req: Request, res: Response): Promise<Response> => {
+        const refreshToken = req.cookies?.refreshToken;
+
+        if (refreshToken) {
+            await this.authenticateService.revokeByRawToken(refreshToken); // método novo no service
+        }
+
+        res.clearCookie('refreshToken', { path: '/api/auth' });
+        return res.status(204).send();
     };
 }

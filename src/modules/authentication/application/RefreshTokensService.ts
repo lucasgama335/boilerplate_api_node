@@ -23,6 +23,7 @@ export class RefreshTokensService {
         if (tokenRecord.revoked) {
             // Dica de segurança avançada: Se um token revogado for tentado,
             // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
+            await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
             throw new AppError('Refresh token inválido ou já utilizado.', 401);
         }
 
@@ -48,6 +49,6 @@ export class RefreshTokensService {
 
         await this.refreshTokenRepository.create(tokenRecord.userId, newHashedRefreshToken, expiresAt);
 
-        return { token: accessToken, refreshToken: newRawRefreshToken };
+        return { token: accessToken, refreshToken: newRawRefreshToken, refreshTokenExpiresAt: expiresAt };
     }
 }

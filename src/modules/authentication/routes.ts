@@ -12,7 +12,6 @@ import { AuthenticateUserService } from './application/AuthenticateUserService';
 import { RefreshTokensService } from './application/RefreshTokensService';
 import { AuthenticateController } from './http/controllers/AuthenticateController';
 import { authenticateUserSchema } from './http/schemas/authenticate-user.schema';
-import { refreshTokenSchema } from './http/schemas/refresh-token-schema';
 import { registerUserSchema } from './http/schemas/register-user-schema';
 import { DrizzleRefreshTokenRepository } from './infra/DrizzleRefreshTokenRepository';
 
@@ -36,4 +35,4 @@ const authenticateController = new AuthenticateController(authenticateService, r
 // ==========================================
 authRoutes.post('/register', validateDataMiddleware(registerUserSchema), authenticateController.registerUser);
 authRoutes.post('/login', validateDataMiddleware(authenticateUserSchema), authenticateController.loginUser);
-authRoutes.post('/refresh', validateDataMiddleware(refreshTokenSchema), authenticateController.refreshToken);
+authRoutes.post('/refresh', authenticateController.refreshToken);

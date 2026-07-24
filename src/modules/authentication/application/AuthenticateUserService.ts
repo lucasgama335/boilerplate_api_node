@@ -65,6 +65,24 @@ export class AuthenticateUserService {
             user: userWihoutPassword,
             token,
             refreshToken: rawRefreshToken,
+            refreshTokenExpiresAt: expiresAt,
         };
+    }
+
+    async revokeByRawToken(token: string): Promise<void> {
+        const tokenRecord = await this.refreshTokenRepository.findByTokenHash(token);
+        if (!tokenRecord) {
+            throw new AppError('Refresh token não encontrado.', 401);
+        }
+
+        // Valida se já foi revogado
+        if (tokenRecord.revoked) {
+            // Dica de segurança avançada: Se um token revogado for tentado,
+            // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
+            await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
+            throw new AppError('Refresh token inválido ou já utilizado.', 401);
+        }
+
+        await this.refreshTokenRepository.revokeToken(tokenRecord.id);
     }
 }

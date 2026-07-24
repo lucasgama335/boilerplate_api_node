@@ -1,7 +1,7 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { JwtTokenProvider } from '@/app/infra/token/JwtTokenProvider';
 import 'dotenv/config';
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 
 interface TokenPayload {
     sub: string;
@@ -22,7 +22,8 @@ export function ensureAuthenticatedMiddleware(req: Request, _res: Response, next
             throw new Error('JWT_SECRET não configurado no ambiente, verifique as variáveis de ambiente.');
         }
 
-        const decoded = jwt.verify(token, secret) as TokenPayload;
+        const tokenProvider = new JwtTokenProvider();
+        const decoded = tokenProvider.verify(token, secret) as TokenPayload;
         // Injeta o ID do usuário na requisição para uso nos controllers
         req.user = {
             id: decoded.sub,

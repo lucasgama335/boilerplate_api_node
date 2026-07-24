@@ -13,4 +13,8 @@ export class JwtTokenProvider implements ITokenProvider {
             expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_AT || '15m') as any,
         });
     }
+
+    verify(token: string, secret: string): jwt.JwtPayload | string {
+        return jwt.verify(token, secret);
+    }
 }
