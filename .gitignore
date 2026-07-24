@@ -1,6 +1,7 @@
 # Dependências e Build
 node_modules/
 dist/
+logs/
 
 # Variáveis de ambiente (Segurança inegociável)
 .env
