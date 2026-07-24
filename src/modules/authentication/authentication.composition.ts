@@ -1,4 +1,4 @@
-import { geolocationProvider, hashProvider, tokenProvider, tokenValidityProvider, useragentProvider } from '@/app/composition-root';
+import { geolocationProvider, hashProvider, tokenProvider, tokenValidityProvider, userAgentProvider } from '@/app/composition-root';
 import { databaseInstance } from '@/database/index';
 import { userRepository } from '@/modules/users/users.composition';
 
@@ -17,7 +17,7 @@ const authenticateService = new AuthenticateUserService(
     hashProvider,
     tokenProvider,
     geolocationProvider,
-    useragentProvider,
+    userAgentProvider,
     tokenValidityProvider,
 );
 

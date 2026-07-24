@@ -10,7 +10,7 @@ import { TokenValidityProvider } from './infra/token-validity/TokenValidityProvi
 export const hashProvider = new HashProvider();
 export const tokenProvider = new TokenProvider();
 export const geolocationProvider = new GeolocationProvider();
-export const useragentProvider = new UserAgentProvider();
+export const userAgentProvider = new UserAgentProvider();
 export const tokenValidityProvider = new TokenValidityProvider(userRepository);
 
 export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider, tokenValidityProvider);
