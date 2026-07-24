@@ -39,12 +39,12 @@ export class AuthenticateUserService {
         const { email, password } = data;
 
         const user = await this.userRepository.findByEmail(email, true);
-        if (!user) {
-            throw new AppError('E-mail ou senha inválidos.', 401);
-        }
 
-        const passwordMatch = await this.hashProvider.compare(password, user.passwordHash);
-        if (!passwordMatch) {
+        // hash "dummy", nunca corresponde a senha nenhuma - só existe pra gastar o mesmo tempo de CPU
+        const DUMMY_HASH = '$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wFWgcT1Z19LgXgITvZH7c';
+        const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : DUMMY_HASH);
+
+        if (!user || !passwordMatch) {
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
@@ -70,7 +70,8 @@ export class AuthenticateUserService {
     }
 
     async revokeByRawToken(token: string): Promise<void> {
-        const tokenRecord = await this.refreshTokenRepository.findByTokenHash(token);
+        const hashedToken = hashToken(token);
+        const tokenRecord = await this.refreshTokenRepository.findByTokenHash(hashedToken);
         if (!tokenRecord) {
             throw new AppError('Refresh token não encontrado.', 401);
         }

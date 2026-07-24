@@ -32,6 +32,6 @@ export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
     }
 
     async revokeAllTokensByUser(userId: string): Promise<void> {
-        await this.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+        await this.db.update(refreshTokens).set({ revoked: true, updatedAt: new Date() }).where(eq(refreshTokens.userId, userId));
     }
 }

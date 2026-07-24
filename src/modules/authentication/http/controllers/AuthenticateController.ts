@@ -29,7 +29,7 @@ export class AuthenticateController {
     };
 
     refreshToken = async (req: Request, res: Response): Promise<Response> => {
-        const { refreshToken } = req.body;
+        const refreshToken = req.cookies?.refreshToken;
 
         const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.refreshTokensService.refresh(refreshToken);
         setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);

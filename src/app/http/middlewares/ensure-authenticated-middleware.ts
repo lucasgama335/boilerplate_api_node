@@ -17,13 +17,8 @@ export function ensureAuthenticatedMiddleware(req: Request, _res: Response, next
 
     const [, token] = authHeader.split(' ');
     try {
-        const secret = process.env.JWT_SECRET;
-        if (!secret) {
-            throw new Error('JWT_SECRET não configurado no ambiente, verifique as variáveis de ambiente.');
-        }
-
         const tokenProvider = new JwtTokenProvider();
-        const decoded = tokenProvider.verify(token, secret) as TokenPayload;
+        const decoded = tokenProvider.verify(token) as TokenPayload;
         // Injeta o ID do usuário na requisição para uso nos controllers
         req.user = {
             id: decoded.sub,

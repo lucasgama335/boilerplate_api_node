@@ -11,10 +11,17 @@ export class JwtTokenProvider implements ITokenProvider {
 
         return jwt.sign({ sub: userId }, secret, {
             expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_AT || '15m') as any,
+            algorithm: 'HS256',
         });
     }
 
-    verify(token: string, secret: string): jwt.JwtPayload | string {
-        return jwt.verify(token, secret);
+    verify(token: string): { sub: string } {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('JWT_SECRET não configurado no ambiente, verifique as variáveis de ambiente.');
+        }
+
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+        return decoded as { sub: string };
     }
 }
