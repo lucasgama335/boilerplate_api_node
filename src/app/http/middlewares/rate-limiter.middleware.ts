@@ -4,8 +4,12 @@ import { rateLimit } from 'express-rate-limit';
 import { RedisStore, SendCommandFn } from 'rate-limit-redis';
 import { withFailOpen } from './with-fail-open';
 
-const rateLimitHandler = () => {
+const rateLimitHandlerIP = () => {
     throw new AppError('Muitas tentativas excedidas a partir deste IP. Tente novamente mais tarde.', 429);
+};
+
+const rateLimitHandlerAccount = () => {
+    throw new AppError('Muitas tentativas excedidas a partir desta conta. Tente novamente mais tarde.', 429);
 };
 
 /**
@@ -36,7 +40,7 @@ const ipLimiterRedis = rateLimit({
         }) as SendCommandFn,
         prefix: 'rl:auth:ip:',
     }),
-    handler: rateLimitHandler,
+    handler: rateLimitHandlerIP,
 });
 
 export const accountLimiterRedis = rateLimit({
@@ -64,7 +68,7 @@ export const accountLimiterRedis = rateLimit({
         }) as SendCommandFn,
         prefix: 'rl:auth:account:',
     }),
-    handler: rateLimitHandler,
+    handler: rateLimitHandlerAccount,
 });
 
 // Fallback: em memória local, sem 'store' customizado = usa o MemoryStore padrão da lib
@@ -73,7 +77,7 @@ const ipLimiterMemoryFallback = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: rateLimitHandler,
+    handler: rateLimitHandlerIP,
 });
 
 const accountLimiterMemoryFallback = rateLimit({
@@ -81,7 +85,7 @@ const accountLimiterMemoryFallback = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: rateLimitHandler,
+    handler: rateLimitHandlerAccount,
 });
 
 export const authIpRateLimiter = withFailOpen(ipLimiterRedis, ipLimiterMemoryFallback, 'ip');
