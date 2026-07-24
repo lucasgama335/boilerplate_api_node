@@ -13,7 +13,14 @@ export default tseslint.config(
             '@typescript-eslint/no-explicit-any': 'error',
 
             // Avisa se houver variáveis declaradas e não usadas (ajuda a limpar o código)
-            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                },
+            ],
         },
     },
     {

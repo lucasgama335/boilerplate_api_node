@@ -1,7 +1,7 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { redisClient } from '@/app/infra/redis/redis-client';
 import { rateLimit } from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
+import { RedisStore, SendCommandFn } from 'rate-limit-redis';
 import { withFailOpen } from './with-fail-open';
 
 const rateLimitHandler = () => {
@@ -15,25 +15,27 @@ const rateLimitHandler = () => {
  * sendo bloqueado normalmente, porque é um AppError intencional.
  */
 
-// Primário: distribuído via Redis (funciona certo mesmo com várias instâncias do servidor)
 const ipLimiterRedis = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     store: new RedisStore({
-        sendCommand: (async (...args: string[]) => (redisClient.call as any)(...args)) as any,
-        prefix: 'rl:auth:',
+        sendCommand: (async (...args: string[]) => {
+            const [command, ...rest] = args;
+            try {
+                return await redisClient.call(command!, ...rest);
+            } catch (error: unknown) {
+                // Silencia apenas o erro chato do terminal na inicialização da API
+                if (command?.toUpperCase() === 'SCRIPT') {
+                    return 'dummy-sha-to-bypass-init-error';
+                }
+                // Deixa explodir na cara do withFailOpen durante o funcionamento normal!
+                throw error;
+            }
+        }) as SendCommandFn,
+        prefix: 'rl:auth:ip:',
     }),
-    handler: rateLimitHandler,
-});
-
-// Fallback: em memória local, sem 'store' customizado = usa o MemoryStore padrão da lib
-const ipLimiterMemoryFallback = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler,
 });
 
@@ -47,13 +49,33 @@ export const accountLimiterRedis = rateLimit({
         return `account:${email}`;
     },
     store: new RedisStore({
-        sendCommand: (async (...args: string[]) => (redisClient.call as any)(...args)) as any,
-        prefix: 'rl:auth:',
+        sendCommand: (async (...args: string[]) => {
+            const [command, ...rest] = args;
+            try {
+                return await redisClient.call(command!, ...rest);
+            } catch (error: unknown) {
+                // Silencia apenas o erro chato do terminal na inicialização da API
+                if (command?.toUpperCase() === 'SCRIPT') {
+                    return 'dummy-sha-to-bypass-init-error';
+                }
+                // Deixa explodir na cara do withFailOpen durante o funcionamento normal!
+                throw error;
+            }
+        }) as SendCommandFn,
+        prefix: 'rl:auth:ip:',
     }),
     handler: rateLimitHandler,
 });
 
 // Fallback: em memória local, sem 'store' customizado = usa o MemoryStore padrão da lib
+const ipLimiterMemoryFallback = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+});
+
 const accountLimiterMemoryFallback = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,

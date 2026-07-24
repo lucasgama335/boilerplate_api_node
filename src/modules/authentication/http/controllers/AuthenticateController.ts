@@ -22,8 +22,9 @@ export class AuthenticateController {
 
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
+        const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
 
-        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password });
+        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password }, ipAddress);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
 
         return res.status(200).json({ user, token });

@@ -1,4 +1,4 @@
-import { boolean, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, inet, pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários
 export const users = pgTable('users', {
@@ -17,8 +17,8 @@ export const users = pgTable('users', {
     totpSecret: varchar('totp_secret', { length: 255 }), // Nulo se 2FA desativado
     isTwoFactorEnabled: boolean('is_two_factor_enabled').default(false).notNull(),
 
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 // Tabela de Tokens de Atualização (Sessões)
@@ -35,6 +35,19 @@ export const refreshTokens = pgTable('refresh_tokens', {
     expiresAt: timestamp('expires_at').notNull(),
     revoked: boolean('revoked').default(false).notNull(),
 
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const loginAttemptsStatus = pgEnum('login_attempt_status', ['success', 'fail']);
+export const loginAttempts = pgTable('login_attempts', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    status: loginAttemptsStatus('status').notNull(),
+    ipAddress: inet('ip_address').notNull(),
+
+    // Identificação do alvo da tentativa
+    email: varchar('email', { length: 255 }), // Opcional, guarda o e-mail digitado
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // Relacionamento opciona
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

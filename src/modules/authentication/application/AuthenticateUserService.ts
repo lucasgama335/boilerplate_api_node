@@ -5,6 +5,7 @@ import { hashToken } from '@/app/utils/hash-token';
 import { IUserRepository } from '@/modules/users/domain/IUserRepository';
 import { User } from '@/modules/users/domain/User';
 import crypto from 'node:crypto';
+import { ILoginAttemptsRepository } from '../domain/ILoginAttemptsRepository';
 import { IRefreshTokenRepository } from '../domain/IRefreshTokenRepository';
 import { AuthenticateUserDTO } from '../http/schemas/authenticate-user.schema';
 import { RegisterUserDTO } from '../http/schemas/register-user-schema';
@@ -15,6 +16,7 @@ export class AuthenticateUserService {
         private readonly refreshTokenRepository: IRefreshTokenRepository,
         private readonly hashProvider: IHashProvider,
         private readonly tokenProvider: ITokenProvider,
+        private readonly loginAttemptRepository: ILoginAttemptsRepository,
     ) {}
 
     async registerUser(data: RegisterUserDTO): Promise<User> {
@@ -24,7 +26,7 @@ export class AuthenticateUserService {
         }
 
         // Extraímos o 'password' e agrupamos o resto das propriedades na variável 'userData'
-        const { password, ...userData } = data;
+        const { password: _, ...userData } = data;
 
         const hashedPassword = await this.hashProvider.hash(data.password);
 
@@ -35,7 +37,7 @@ export class AuthenticateUserService {
         return createdUser;
     }
 
-    async loginUser(data: AuthenticateUserDTO) {
+    async loginUser(data: AuthenticateUserDTO, ipAddress: string) {
         const { email, password } = data;
 
         const user = await this.userRepository.findByEmail(email, true);
@@ -45,6 +47,7 @@ export class AuthenticateUserService {
         const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : DUMMY_HASH);
 
         if (!user || !passwordMatch) {
+            await this.loginAttemptRepository.generateAttempt('fail', ipAddress, email, user?.id);
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
@@ -59,7 +62,9 @@ export class AuthenticateUserService {
 
         await this.refreshTokenRepository.create(user.id, hashedRefreshToken, expiresAt);
 
-        const { passwordHash, ...userWihoutPassword } = user;
+        const { passwordHash: _, ...userWihoutPassword } = user;
+
+        await this.loginAttemptRepository.generateAttempt('success', ipAddress, email, user.id);
 
         return {
             user: userWihoutPassword,

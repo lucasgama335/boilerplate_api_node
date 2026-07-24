@@ -1,0 +1,1 @@
+ALTER TABLE "login_attempts" RENAME COLUMN "role" TO "status";
