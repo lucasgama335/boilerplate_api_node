@@ -83,6 +83,7 @@ export class AuthenticateUserService {
             // Dica de segurança avançada: Se um token revogado for tentado,
             // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
             await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
+            await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
             throw new AppError('Refresh token inválido ou já utilizado.', 401);
         }
 
@@ -136,6 +137,7 @@ export class AuthenticateUserService {
             // Dica de segurança avançada: Se um token revogado for tentado,
             // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
             await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
+            await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
             throw new AppError('Refresh token inválido ou já utilizado.', 401);
         }
 

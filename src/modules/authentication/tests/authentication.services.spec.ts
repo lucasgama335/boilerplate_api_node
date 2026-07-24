@@ -70,7 +70,7 @@ describe('Authentication Service (Unit Test)', () => {
                 lastName: 'Doe',
                 email: 'jane@example.com',
                 password: 'secure-password-123',
-                passwordConfirmation: 'secure-password-123',
+                passwordConfirmation: 'password-123',
             });
 
             expect(user).toHaveProperty('id');
@@ -222,9 +222,16 @@ describe('Authentication Service (Unit Test)', () => {
 
             await refreshTokenRepository.revokeToken(tokenId);
 
+            // 🕵️ Adicionamos o espião no provider!
+            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
+
             await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
 
+            // Garante que os Refresh Tokens foram pro lixo
             expect(refreshTokenRepository.items.every((t) => t.revoked)).toBe(true);
+
+            // ✅ Garante que os Access Tokens também foram pra guilhotina!
+            expect(revokeTokensSpy).toHaveBeenCalledWith(user.id);
         });
 
         it('deve lançar um erro ao tentar atualizar usando um refresh token expirado', async () => {
@@ -282,7 +289,13 @@ describe('Authentication Service (Unit Test)', () => {
 
             await refreshTokenRepository.revokeToken(tokenId);
 
+            // 🕵️ Adicionamos o espião no provider!
+            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
+
             await expect(authService.revokeByRawToken(rawToken)).rejects.toBeInstanceOf(AppError);
+
+            // ✅ Garante que os Access Tokens também foram pra guilhotina!
+            expect(revokeTokensSpy).toHaveBeenCalledWith(user.id);
         });
     });
 
