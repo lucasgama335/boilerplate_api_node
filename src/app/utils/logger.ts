@@ -13,14 +13,25 @@ export const logger = pino({
                 options: { colorize: true },
                 level: 'info',
             },
-            // 2. Manda para um Arquivo de texto
+            // 2. Salva em Arquivo com Rotação (Log Rotation)
             {
-                target: 'pino/file',
+                target: 'pino-roll',
                 options: {
-                    destination: './logs/error.log', // Onde o arquivo será salvo
-                    mkdir: true, // Cria a pasta 'logs' automaticamente se não existir
+                    // O %Y-%m-%d adiciona a data no nome (ex: error-2026-07-24.log)
+                    file: './logs/error-%Y-%m-%d',
+                    extension: '.log',
+
+                    // Roda a cada virada de dia (meia-noite)
+                    frequency: 'daily',
+
+                    // SEGURANÇA EXTRA: Se o sistema surtar e gerar muitos erros no mesmo dia,
+                    // ele quebra o arquivo ao atingir 10MB para não travar a memória.
+                    size: '10m',
+
+                    // Cria a pasta "logs" automaticamente se não existir
+                    mkdir: true,
                 },
-                level: 'error', // Dica: Só mande 'error' para o arquivo, assim seu disco não enche de logs de 'info'
+                level: 'error', // Registra apenas os erros no arquivo
             },
         ],
     },

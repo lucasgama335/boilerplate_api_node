@@ -30,6 +30,7 @@
         "jsonwebtoken": "^9.0.3",
         "pg": "^8.22.0",
         "pino": "^10.3.1",
+        "pino-roll": "^4.0.0",
         "rate-limit-redis": "^6.0.0",
         "ua-parser-js": "^2.0.10",
         "zod": "^4.4.3"
