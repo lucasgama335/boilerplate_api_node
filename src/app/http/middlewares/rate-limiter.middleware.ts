@@ -10,10 +10,10 @@ export const authRateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     store: new RedisStore({
-        // Força a compatibilidade exata com o tipo SendCommandFn esperado pelo store
-        sendCommand: (async (args: string[]) => {
-            const [command, ...parameters] = args;
-            return await redisClient.call(command, ...parameters);
+        // Usa rest parameters (...args) para bater com a assinatura exata do SendCommandFn
+        sendCommand: (async (...args: string[]) => {
+            // O cast em (redisClient.call as any) evita o erro de tupla do TypeScript e repassa os argumentos íntegros ao Redis
+            return await (redisClient.call as any)(...args);
         }) as any,
         prefix: 'rl:auth:',
     }),
