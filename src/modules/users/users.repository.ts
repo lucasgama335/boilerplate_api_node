@@ -41,7 +41,6 @@ export class DrizzleUserRepository implements IUserRepository {
     async findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
     async findById(id: string, showUserPasswordHash?: boolean): Promise<User | null>;
     async findById(id: string, showUserPasswordHash: boolean = false): Promise<User | UserWithPassword | null> {
-        // Retorna um array, ex: [{ id: 1, email: '...' }] ou []
         const [result] = await this.db.select().from(users).where(eq(users.id, id));
         if (!result) {
             return null;
@@ -52,7 +51,6 @@ export class DrizzleUserRepository implements IUserRepository {
             return (userWithoutPassword as User) || null;
         }
 
-        // Se não tiver nada no índice 0, retorna null. Se tiver, retorna o objeto.
         return (result as UserWithPassword) || null;
     }
 

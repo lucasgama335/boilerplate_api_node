@@ -1,6 +1,6 @@
 import { hashProvider, tokenProvider } from '@/app/composition-root';
 import { databaseInstance } from '@/database/index';
-import { userRepository } from '@/modules/users/users.composition'; // reaproveita, não recria
+import { userRepository } from '@/modules/users/users.composition';
 
 import { AuthenticateController } from './authentication.controller';
 import { AuthenticateUserService } from './authentication.services';

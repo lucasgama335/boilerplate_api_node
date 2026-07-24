@@ -1,8 +1,5 @@
 import { Router } from 'express';
 
-// 1. Importamos as nossas implementações reais (A Infraestrutura)
-
-// 2. Importamos a Regra de Negócio e o Controller (A Aplicação e o HTTP)
 import { authAccountRateLimiter, authIpRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { authenticateController } from './authentication.composition';

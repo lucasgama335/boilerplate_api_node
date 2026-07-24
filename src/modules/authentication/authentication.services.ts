@@ -28,10 +28,12 @@ export class AuthenticateUserService {
         const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : DUMMY_HASH);
 
         if (!user || !passwordMatch) {
+            // Registra tentativa de login
             await this.loginAttemptRepository.generateAttempt('fail', ipAddress, email, user?.id);
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
+        // Gera novo token de acesso
         const token = this.tokenProvider.generate(user.id);
 
         // Gera um novo refresh token
@@ -45,6 +47,7 @@ export class AuthenticateUserService {
 
         const { passwordHash: _, ...userWihoutPassword } = user;
 
+        // Registra tentativa de login
         await this.loginAttemptRepository.generateAttempt('success', ipAddress, email, user.id);
 
         return {
@@ -130,7 +133,7 @@ export class AuthenticateUserService {
         const hashedPassword = await this.hashProvider.hash(data.password);
 
         const createdUser = await this.userRepository.create({
-            ...userData, // Aqui vai apenas os campos limpos e sanitizados, sem o texto do password
+            ...userData,
             passwordHash: hashedPassword,
         });
         return createdUser;

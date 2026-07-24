@@ -41,7 +41,7 @@ export const registerUserSchema = z
         path: ['passwordConfirmation'],
     });
 
-// A Inferência Mágica (Gerando o tipo TypeScript a partir do Schema)!
+// Gerando o tipo TypeScript a partir do Schema
 export type AuthenticateUserDTO = z.infer<typeof authenticateUserSchema>;
 export type RegisterUserDTO = z.infer<typeof registerUserSchema>;
 export type RefreshTokenDTO = z.infer<typeof refreshTokenSchema>;
