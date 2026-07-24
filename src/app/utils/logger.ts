@@ -17,21 +17,20 @@ export const logger = pino({
             {
                 target: 'pino-roll',
                 options: {
-                    // O %Y-%m-%d adiciona a data no nome (ex: error-2026-07-24.log)
-                    file: './logs/error-%Y-%m-%d',
+                    // O nome base do arquivo (sem data e sem extensão)
+                    file: './logs/error',
+
+                    // O formato da data que será injetado (padrão yyyy-MM-dd)
+                    dateFormat: 'yyyy-MM-dd',
+
+                    // A extensão que vai no final de tudo
                     extension: '.log',
 
-                    // Roda a cada virada de dia (meia-noite)
                     frequency: 'daily',
-
-                    // SEGURANÇA EXTRA: Se o sistema surtar e gerar muitos erros no mesmo dia,
-                    // ele quebra o arquivo ao atingir 10MB para não travar a memória.
                     size: '10m',
-
-                    // Cria a pasta "logs" automaticamente se não existir
                     mkdir: true,
                 },
-                level: 'error', // Registra apenas os erros no arquivo
+                level: 'error',
             },
         ],
     },
