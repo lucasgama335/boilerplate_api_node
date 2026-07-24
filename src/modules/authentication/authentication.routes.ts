@@ -12,4 +12,4 @@ authRoutes.post('/register', validateDataMiddleware(registerUserSchema), authent
 authRoutes.post('/login', authIpRateLimiter, authAccountRateLimiter, validateDataMiddleware(authenticateUserSchema), authenticateController.loginUser);
 authRoutes.post('/refresh', authIpRateLimiter, authenticateController.refreshToken);
 authRoutes.post('/logout', authenticateController.logout);
-authRoutes.get('/logout-all-devices', authMiddleware, authenticateController.revokeAllUserTokens);
+authRoutes.post('/logout-all-devices', authMiddleware, authenticateController.revokeAllUserTokens);
