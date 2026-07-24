@@ -1,6 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserRepository } from '@/modules/users/domain/IUserRepository';
-import { User } from '@/modules/users/domain/User';
+import { User } from '@/modules/users/users.types';
+import { IUserRepository } from './users.repository';
 
 export class GetUserProfileService {
     constructor(private readonly userRepository: IUserRepository) {}

@@ -1,7 +1,7 @@
 import { databaseInstance } from '@/database';
-import { GetUserProfileService } from './application/GetUserProfileService';
-import { ProfileController } from './http/controllers/ProfileController';
-import { DrizzleUserRepository } from './infra/DrizzleUserRepository';
+import { ProfileController } from './users.controller';
+import { DrizzleUserRepository } from './users.repository';
+import { GetUserProfileService } from './users.services';
 
 export const userRepository = new DrizzleUserRepository(databaseInstance);
 

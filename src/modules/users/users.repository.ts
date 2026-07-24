@@ -1,8 +1,21 @@
 import { DatabaseType } from '@/database';
 import { users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { IUserRepository } from '../domain/IUserRepository';
-import { CreateUserData, User, UserWithPassword } from '../domain/User';
+import { CreateUserData, User, UserWithPassword } from './users.types';
+
+export interface IUserRepository {
+    // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
+    // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
+    findByEmail(email: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
+    findByEmail(email: string, showUserPasswordHash?: false): Promise<User | null>;
+    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+
+    findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
+    findById(id: string, showUserPasswordHash?: false): Promise<User | null>;
+    findById(id: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+
+    create(data: CreateUserData): Promise<User>;
+}
 
 export class DrizzleUserRepository implements IUserRepository {
     constructor(private readonly db: DatabaseType) {}
@@ -18,7 +31,7 @@ export class DrizzleUserRepository implements IUserRepository {
         }
 
         if (!showUserPasswordHash) {
-            const { passwordHash, ...userWithoutPassword } = result;
+            const { passwordHash: _, ...userWithoutPassword } = result;
             return (userWithoutPassword as User) || null;
         }
 
@@ -35,7 +48,7 @@ export class DrizzleUserRepository implements IUserRepository {
         }
 
         if (!showUserPasswordHash) {
-            const { passwordHash, ...userWithoutPassword } = result;
+            const { passwordHash: _, ...userWithoutPassword } = result;
             return (userWithoutPassword as User) || null;
         }
 
@@ -46,7 +59,7 @@ export class DrizzleUserRepository implements IUserRepository {
     async create(data: CreateUserData): Promise<User> {
         const [result] = await this.db.insert(users).values(data).returning();
 
-        const { passwordHash, ...userWithoutPassword } = result;
+        const { passwordHash: _, ...userWithoutPassword } = result;
 
         return userWithoutPassword;
     }

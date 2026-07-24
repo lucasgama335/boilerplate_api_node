@@ -1,15 +1,11 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
-import { AuthenticateUserService } from '../../application/AuthenticateUserService';
-import { RefreshTokensService } from '../../application/RefreshTokensService';
+import { AuthenticateUserService } from './authentication.services';
 
 export class AuthenticateController {
     // 1. A Injeção de Dependência entra aqui no Construtor!
-    constructor(
-        private readonly authenticateService: AuthenticateUserService,
-        private readonly refreshTokensService: RefreshTokensService,
-    ) {}
+    constructor(private readonly authenticateService: AuthenticateUserService) {}
 
     // Usamos Arrow Function para não perder o escopo do 'this' no Express
     registerUser = async (req: Request, res: Response): Promise<Response> => {
@@ -36,7 +32,7 @@ export class AuthenticateController {
             throw new AppError('Refresh token não encontrado.', 401);
         }
 
-        const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.refreshTokensService.refresh(refreshToken);
+        const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.authenticateService.refresh(refreshToken);
         setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);
 
         return res.status(200).json({ token });

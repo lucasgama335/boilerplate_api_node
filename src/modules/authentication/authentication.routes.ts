@@ -6,8 +6,7 @@ import { Router } from 'express';
 import { authAccountRateLimiter, authIpRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { authenticateController } from './authentication.composition';
-import { authenticateUserSchema } from './http/schemas/authenticate-user.schema';
-import { registerUserSchema } from './http/schemas/register-user-schema';
+import { authenticateUserSchema, registerUserSchema } from './authentication.schemas';
 
 export const authRoutes = Router();
 

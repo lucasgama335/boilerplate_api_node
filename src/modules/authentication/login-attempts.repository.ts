@@ -1,7 +1,10 @@
 import { DatabaseType } from '@/database';
 import { loginAttempts } from '@/database/schema';
-import { ILoginAttemptsRepository } from '../domain/ILoginAttemptsRepository';
-import { LoginAttempt } from '../domain/LoginAttempt';
+import { LoginAttempt } from './authentication.types';
+
+export interface ILoginAttemptsRepository {
+    generateAttempt(status: 'success' | 'fail', ipAddress: string, email?: string, userId?: string): Promise<LoginAttempt | null>;
+}
 
 export class LoginAttemptsRepository implements ILoginAttemptsRepository {
     constructor(private readonly db: DatabaseType) {}

@@ -1,6 +1,6 @@
-import { authRoutes } from '@/modules/authentication/routes';
+import { authRoutes } from '@/modules/authentication/authentication.routes';
 import { Router } from 'express';
-import { userRoutes } from './modules/users/routes';
+import { userRoutes } from './modules/users/users.routes';
 // No futuro: import { usersRoutes } from '@/modules/users/routes';
 
 const routes = Router();

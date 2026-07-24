@@ -1,8 +1,14 @@
 import { DatabaseType } from '@/database';
 import { refreshTokens } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { IRefreshTokenRepository } from '../domain/IRefreshTokenRepository';
-import { RefreshToken } from '../domain/RefreshToken';
+import { RefreshToken } from './authentication.types';
+
+export interface IRefreshTokenRepository {
+    create(userId: string, hashedToken: string, expiresAt: Date): Promise<string>;
+    findByTokenHash(hashedToken: string): Promise<RefreshToken | null>;
+    revokeToken(id: string): Promise<void>;
+    revokeAllTokensByUser(userId: string): Promise<void>;
+}
 
 export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
     constructor(private readonly db: DatabaseType) {}

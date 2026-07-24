@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { GetUserProfileService } from '../../application/GetUserProfileService';
+import { GetUserProfileService } from './users.services';
 
 export class ProfileController {
     constructor(private readonly getUserProfileService: GetUserProfileService) {}
