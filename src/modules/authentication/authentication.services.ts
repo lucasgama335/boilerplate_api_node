@@ -1,6 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IHashProvider } from '@/app/infra/hashing/IHashProvider';
-import { ITokenProvider } from '@/app/infra/token/ITokenProvider';
+import { IHashProvider } from '@/app/infra/hashing/HashProvider';
+import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { hashToken } from '@/app/utils/hash-token';
 import { IUserRepository } from '@/modules/users/users.repository';
 import { User } from '@/modules/users/users.types';

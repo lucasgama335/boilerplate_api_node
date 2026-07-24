@@ -1,8 +1,12 @@
 import 'dotenv/config';
-import jwt from 'jsonwebtoken';
-import { ITokenProvider } from './ITokenProvider';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
-export class JwtTokenProvider implements ITokenProvider {
+export interface ITokenProvider {
+    generate(userId: string): string;
+    verify(token: string): { sub: string };
+}
+
+export class TokenProvider implements ITokenProvider {
     generate(userId: string): string {
         const secret = process.env.JWT_SECRET;
         if (!secret) {
@@ -10,7 +14,7 @@ export class JwtTokenProvider implements ITokenProvider {
         }
 
         return jwt.sign({ sub: userId }, secret, {
-            expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_AT || '15m') as any,
+            expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_AT || '15m') as SignOptions['expiresIn'],
             algorithm: 'HS256',
         });
     }

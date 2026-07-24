@@ -1,8 +1,8 @@
 // shared/composition-root.ts (ou onde você já centraliza infra compartilhada)
 import { ensureAuthenticatedMiddleware } from '@/app/http/middlewares/ensure-authenticated-middleware';
-import { JwtTokenProvider } from '@/app/infra/token/JwtTokenProvider';
-import { Argon2HashProvider } from './infra/hashing/Argon2HashProvider';
+import { TokenProvider } from '@/app/infra/token/TokenProvider';
+import { HashProvider } from './infra/hashing/HashProvider';
 
-export const hashProvider = new Argon2HashProvider();
-export const tokenProvider = new JwtTokenProvider();
+export const hashProvider = new HashProvider();
+export const tokenProvider = new TokenProvider();
 export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider);
