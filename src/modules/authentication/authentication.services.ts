@@ -1,6 +1,9 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { IGeolocationProvider } from '@/app/infra/geolocation/GeolocationProvider';
 import { IHashProvider } from '@/app/infra/hashing/HashProvider';
+import { ITokenValidityProvider } from '@/app/infra/token-validity/TokenValidityProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
+import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { hashToken } from '@/app/utils/hash-token';
 import { IUserRepository } from '@/modules/users/users.repository';
 import { User } from '@/modules/users/users.types';
@@ -13,15 +16,20 @@ export class AuthenticateUserService {
     constructor(
         private readonly userRepository: IUserRepository,
         private readonly refreshTokenRepository: IRefreshTokenRepository,
+        private readonly loginAttemptRepository: ILoginAttemptsRepository,
         private readonly hashProvider: IHashProvider,
         private readonly tokenProvider: ITokenProvider,
-        private readonly loginAttemptRepository: ILoginAttemptsRepository,
+        private readonly geolocationProvider: IGeolocationProvider,
+        private readonly userAgentProvider: IUserAgentProvider,
+        private readonly tokenValidityProvider: ITokenValidityProvider,
     ) {}
 
-    async loginUser(data: AuthenticateUserDTO, ipAddress: string) {
+    async loginUser(data: AuthenticateUserDTO, ipAddress: string, userAgentString: string) {
         const { email, password } = data;
 
         const user = await this.userRepository.findByEmail(email, true);
+        const location = this.geolocationProvider.lookup(ipAddress);
+        const device = this.userAgentProvider.parse(userAgentString);
 
         // hash "dummy", nunca corresponde a senha nenhuma - só existe pra gastar o mesmo tempo de CPU
         const DUMMY_HASH = '$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wFWgcT1Z19LgXgITvZH7c';
@@ -29,7 +37,7 @@ export class AuthenticateUserService {
 
         if (!user || !passwordMatch) {
             // Registra tentativa de login
-            await this.loginAttemptRepository.generateAttempt('fail', ipAddress, email, user?.id);
+            await this.loginAttemptRepository.generateAttempt('fail', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user?.id);
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
@@ -43,12 +51,12 @@ export class AuthenticateUserService {
         expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
         // expiresAt.setTime(expiresAt.getTime() + 10 * 1000);
 
-        await this.refreshTokenRepository.create(user.id, hashedRefreshToken, expiresAt);
+        await this.refreshTokenRepository.create(user.id, hashedRefreshToken, expiresAt, ipAddress, location.city, location.region, location.country, device.os, device.deviceType);
 
         const { passwordHash: _, ...userWihoutPassword } = user;
 
         // Registra tentativa de login
-        await this.loginAttemptRepository.generateAttempt('success', ipAddress, email, user.id);
+        await this.loginAttemptRepository.generateAttempt('success', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user.id);
 
         return {
             user: userWihoutPassword,
@@ -58,7 +66,7 @@ export class AuthenticateUserService {
         };
     }
 
-    async refresh(rawToken: string) {
+    async refresh(rawToken: string, ipAddress: string, userAgentString: string) {
         if (!rawToken) {
             throw new AppError('Refresh token não encontrado.', 401);
         }
@@ -98,7 +106,20 @@ export class AuthenticateUserService {
         expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
         // expiresAt.setTime(expiresAt.getTime() + 10 * 1000);
 
-        await this.refreshTokenRepository.create(tokenRecord.userId, newHashedRefreshToken, expiresAt);
+        const location = this.geolocationProvider.lookup(ipAddress);
+        const device = this.userAgentProvider.parse(userAgentString);
+
+        await this.refreshTokenRepository.create(
+            tokenRecord.userId,
+            newHashedRefreshToken,
+            expiresAt,
+            ipAddress,
+            location.city,
+            location.region,
+            location.country,
+            device.os,
+            device.deviceType,
+        );
 
         return { token: accessToken, refreshToken: newRawRefreshToken, refreshTokenExpiresAt: expiresAt };
     }
@@ -119,6 +140,27 @@ export class AuthenticateUserService {
         }
 
         await this.refreshTokenRepository.revokeToken(tokenRecord.id);
+    }
+
+    async revokeSessionsService(userId: string, keepCurrentSession: boolean, currentRefreshToken?: string) {
+        // 1. Invalida todos os Access Tokens emitidos no passado (incluindo o da sessão atual)
+        await this.tokenValidityProvider.revokeAllTokens(userId);
+
+        if (keepCurrentSession && currentRefreshToken) {
+            // 2A. Mantém apenas o Refresh Token atual vivo no banco
+            const hashedToken = hashToken(currentRefreshToken);
+            await this.refreshTokenRepository.revokeAllTokensByUser(userId, hashedToken);
+
+            // 3. Como matamos todos os Access Tokens no passo 1, geramos um NOVO
+            // com um timestamp superior à revogação, para a sessão atual não cair.
+            const newAccessToken = this.tokenProvider.generate(userId);
+            return { accessToken: newAccessToken };
+        }
+
+        // 2B. Destrói TODOS os Refresh Tokens do banco (Logout global absoluto)
+        await this.refreshTokenRepository.revokeAllTokensByUser(userId);
+
+        return { accessToken: null };
     }
 
     async registerUser(data: RegisterUserDTO): Promise<User> {

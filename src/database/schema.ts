@@ -1,4 +1,4 @@
-import { boolean, inet, pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, inet, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários
 export const users = pgTable('users', {
@@ -16,6 +16,7 @@ export const users = pgTable('users', {
     isEmailConfirmed: boolean('is_email_confirmed').default(false).notNull(),
     totpSecret: varchar('totp_secret', { length: 255 }), // Nulo se 2FA desativado
     isTwoFactorEnabled: boolean('is_two_factor_enabled').default(false).notNull(),
+    tokensRevokedAt: timestamp('tokens_revoked_at'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -35,6 +36,15 @@ export const refreshTokens = pgTable('refresh_tokens', {
     expiresAt: timestamp('expires_at').notNull(),
     revoked: boolean('revoked').default(false).notNull(),
 
+    // Identificação
+    ipAddress: inet('ip_address').notNull(),
+    city: text('city'),
+    region: text('region'),
+    country: text('country'),
+    browser: text('browser'),
+    os: text('os'),
+    deviceType: text('device_type'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -48,6 +58,12 @@ export const loginAttempts = pgTable('login_attempts', {
     // Identificação do alvo da tentativa
     email: varchar('email', { length: 255 }), // Opcional, guarda o e-mail digitado
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // Relacionamento opciona
+    city: text('city'),
+    region: text('region'),
+    country: text('country'),
+    browser: text('browser'),
+    os: text('os'),
+    deviceType: text('device_type'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

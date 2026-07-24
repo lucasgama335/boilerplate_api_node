@@ -36,6 +36,27 @@
       "when": 1784861328339,
       "tag": "0004_majestic_santa_claus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784896343656,
+      "tag": "0005_overjoyed_joystick",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784896619946,
+      "tag": "0006_fresh_venus",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784897504516,
+      "tag": "0007_workable_blob",
+      "breakpoints": true
     }
   ]
 }

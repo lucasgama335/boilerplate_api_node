@@ -15,6 +15,9 @@ export interface IUserRepository {
     findById(id: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
 
     create(data: CreateUserData): Promise<User>;
+
+    getTokensRevokedAt(userId: string): Promise<Date | null>;
+    setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 }
 
 export class DrizzleUserRepository implements IUserRepository {
@@ -60,5 +63,16 @@ export class DrizzleUserRepository implements IUserRepository {
         const { passwordHash: _, ...userWithoutPassword } = result;
 
         return userWithoutPassword;
+    }
+
+    async getTokensRevokedAt(userId: string): Promise<Date | null> {
+        const [user] = await this.db.select({ tokensRevokedAt: users.tokensRevokedAt }).from(users).where(eq(users.id, userId));
+
+        // Retorna a data se existir, ou null
+        return user?.tokensRevokedAt || null;
+    }
+
+    async setTokensRevokedAt(userId: string, date: Date): Promise<void> {
+        await this.db.update(users).set({ tokensRevokedAt: date }).where(eq(users.id, userId));
     }
 }

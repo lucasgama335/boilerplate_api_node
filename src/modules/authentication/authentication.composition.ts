@@ -1,4 +1,4 @@
-import { hashProvider, tokenProvider } from '@/app/composition-root';
+import { geolocationProvider, hashProvider, tokenProvider, tokenValidityProvider, useragentProvider } from '@/app/composition-root';
 import { databaseInstance } from '@/database/index';
 import { userRepository } from '@/modules/users/users.composition';
 
@@ -10,6 +10,15 @@ import { DrizzleRefreshTokenRepository } from './refresh-tokens.repository';
 const refreshTokenRepository = new DrizzleRefreshTokenRepository(databaseInstance);
 const loginAttemptRepository = new LoginAttemptsRepository(databaseInstance);
 
-const authenticateService = new AuthenticateUserService(userRepository, refreshTokenRepository, hashProvider, tokenProvider, loginAttemptRepository);
+const authenticateService = new AuthenticateUserService(
+    userRepository,
+    refreshTokenRepository,
+    loginAttemptRepository,
+    hashProvider,
+    tokenProvider,
+    geolocationProvider,
+    useragentProvider,
+    tokenValidityProvider,
+);
 
 export const authenticateController = new AuthenticateController(authenticateService);
