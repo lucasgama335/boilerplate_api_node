@@ -1,20 +1,20 @@
 import { DatabaseType } from '@/database';
 import { users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { CreateUserData, User, UserWithPassword } from './users.types';
+import { CreateUser, SafeUser, User } from './users.types';
 
 export interface IUserRepository {
     // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
     // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
-    findByEmail(email: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    findByEmail(email: string, showUserPasswordHash?: false): Promise<User | null>;
-    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+    findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
 
-    findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    findById(id: string, showUserPasswordHash?: false): Promise<User | null>;
-    findById(id: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+    findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
 
-    create(data: CreateUserData): Promise<User>;
+    create(data: CreateUser): Promise<SafeUser>;
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
@@ -23,9 +23,9 @@ export interface IUserRepository {
 export class DrizzleUserRepository implements IUserRepository {
     constructor(private readonly db: DatabaseType) {}
 
-    async findByEmail(email: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    async findByEmail(email: string, showUserPasswordHash?: boolean): Promise<User | null>;
-    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<User | UserWithPassword | null> {
+    async findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    async findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
+    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
         // Retorna um array, ex: [{ id: 1, email: '...' }] ou []
         // Usamos a variável dentro de colchetes pq faz com que o javascript já retorne o primeiro item do array retornado tornando a variável o objeto em si.
         const [result] = await this.db.select().from(users).where(eq(users.email, email));
@@ -38,12 +38,12 @@ export class DrizzleUserRepository implements IUserRepository {
             return (userWithoutPassword as User) || null;
         }
 
-        return (result as UserWithPassword) || null;
+        return (result as User) || null;
     }
 
-    async findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    async findById(id: string, showUserPasswordHash?: boolean): Promise<User | null>;
-    async findById(id: string, showUserPasswordHash: boolean = false): Promise<User | UserWithPassword | null> {
+    async findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    async findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
+    async findById(id: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
         const [result] = await this.db.select().from(users).where(eq(users.id, id));
         if (!result) {
             return null;
@@ -54,10 +54,10 @@ export class DrizzleUserRepository implements IUserRepository {
             return (userWithoutPassword as User) || null;
         }
 
-        return (result as UserWithPassword) || null;
+        return (result as User) || null;
     }
 
-    async create(data: CreateUserData): Promise<User> {
+    async create(data: CreateUser): Promise<SafeUser> {
         const [result] = await this.db.insert(users).values(data).returning();
 
         const { passwordHash: _, ...userWithoutPassword } = result;

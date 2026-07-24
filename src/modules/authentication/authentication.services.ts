@@ -6,8 +6,8 @@ import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { hashToken } from '@/app/utils/hash-token';
 import { IUserRepository } from '@/modules/users/users.repository';
-import { User } from '@/modules/users/users.types';
 import crypto from 'node:crypto';
+import { SafeUser } from '../users/users.types';
 import { AuthenticateUserDTO, RegisterUserDTO } from './authentication.schemas';
 import { ILoginAttemptsRepository } from './login-attempts.repository';
 import { IRefreshTokenRepository } from './refresh-tokens.repository';
@@ -165,7 +165,7 @@ export class AuthenticateUserService {
         return { accessToken: null };
     }
 
-    async registerUser(data: RegisterUserDTO): Promise<User> {
+    async registerUser(data: RegisterUserDTO): Promise<SafeUser> {
         const userAlreadyExists = await this.userRepository.findByEmail(data.email);
         if (userAlreadyExists) {
             throw new AppError('Esse e-mail já está vinculado a uma conta cadastrada no sistema.', 409);

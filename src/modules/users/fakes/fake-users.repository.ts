@@ -1,32 +1,32 @@
-import { CreateUserData, User, UserWithPassword } from '../users.types';
+import { CreateUser, SafeUser, User } from '../users.types';
 
 export interface IFakeUserRepository {
     // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
     // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
-    findByEmail(email: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    findByEmail(email: string, showUserPasswordHash?: false): Promise<User | null>;
-    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+    findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
 
-    findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    findById(id: string, showUserPasswordHash?: false): Promise<User | null>;
-    findById(id: string, showUserPasswordHash?: boolean): Promise<User | UserWithPassword | null>;
+    findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
 
-    create(data: CreateUserData): Promise<User>;
+    create(data: CreateUser): Promise<SafeUser>;
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 }
 
-export type CreateFakeUserData = CreateUserData & {
+export type CreateFakeUserData = CreateUser & {
     id?: string;
 };
 
 export class InMemoryUserRepository implements IFakeUserRepository {
-    public items: UserWithPassword[] = [];
+    public items: User[] = [];
 
-    async findByEmail(email: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    async findByEmail(email: string, showUserPasswordHash?: false): Promise<User | null>;
-    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<User | UserWithPassword | null> {
+    async findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    async findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
         const user = this.items.find((item) => item.email === email);
         if (!user) {
             return null;
@@ -40,9 +40,9 @@ export class InMemoryUserRepository implements IFakeUserRepository {
         return user;
     }
 
-    async findById(id: string, showUserPasswordHash: true): Promise<UserWithPassword | null>;
-    async findById(id: string, showUserPasswordHash?: false): Promise<User | null>;
-    async findById(id: string, showUserPasswordHash: boolean = false): Promise<User | UserWithPassword | null> {
+    async findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    async findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    async findById(id: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
         const user = this.items.find((item) => item.id === id);
         if (!user) {
             return null;
@@ -50,14 +50,14 @@ export class InMemoryUserRepository implements IFakeUserRepository {
 
         if (!showUserPasswordHash) {
             const { passwordHash: _, ...userWithoutPassword } = user;
-            return userWithoutPassword as User;
+            return userWithoutPassword as SafeUser;
         }
 
         return user;
     }
 
-    async create(data: CreateFakeUserData): Promise<User> {
-        const newUser: UserWithPassword = {
+    async create(data: CreateFakeUserData): Promise<SafeUser> {
+        const newUser: User = {
             id: data.id ?? crypto.randomUUID(),
             firstName: data.firstName,
             lastName: data.lastName,
