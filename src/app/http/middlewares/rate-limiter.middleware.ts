@@ -2,7 +2,7 @@ import { AppError } from '@/app/exceptions/AppError';
 import { redisClient } from '@/app/infra/redis/redis-client';
 import { rateLimit } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import { withFailOpen } from './with-fail-open.ts';
+import { withFailOpen } from './with-fail-open';
 
 const rateLimitHandler = () => {
     throw new AppError('Muitas tentativas excedidas a partir deste IP. Tente novamente mais tarde.', 429);
