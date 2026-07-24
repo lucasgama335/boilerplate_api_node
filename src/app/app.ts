@@ -1,3 +1,15 @@
+import * as Sentry from '@sentry/node';
+
+// Inicialize o Sentry o mais cedo possível
+Sentry.init({
+    dsn: process.env.SENTRY_DSN, // Você pega essa URL gratuita criando uma conta no Sentry.io
+    environment: process.env.NODE_ENV || 'development',
+    enableLogs: true,
+    // tracesSampleRate de 1.0 captura 100% das transações para métricas de performance.
+    // Em produção com alto tráfego, você pode reduzir para 0.2 (20%).
+    tracesSampleRate: 1.0,
+});
+
 import { routes } from '@/routes';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';

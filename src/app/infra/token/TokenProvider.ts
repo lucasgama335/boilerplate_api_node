@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import jwt, { SignOptions } from 'jsonwebtoken';
 
 export interface ITokenProvider {

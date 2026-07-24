@@ -1,7 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { ITokenValidityProvider } from '@/app/infra/token-validity/TokenValidityProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
-import 'dotenv/config';
 import { NextFunction, Request, Response } from 'express';
 
 interface TokenPayload {
