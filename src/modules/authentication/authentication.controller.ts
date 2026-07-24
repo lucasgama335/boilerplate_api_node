@@ -1,4 +1,5 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from './authentication.services';
@@ -21,6 +22,7 @@ export class AuthenticateController {
 
         const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password }, ipAddress, userAgentString);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
+        await resetAuthRateLimits(ipAddress, email);
 
         return res.status(200).json({ user, token });
     };

@@ -12,6 +12,8 @@ const rateLimitHandlerAccount = () => {
     throw new AppError('Muitas tentativas excedidas a partir desta conta. Tente novamente mais tarde.', 429);
 };
 
+const getAccountKey = (email: string) => email.trim().toLowerCase();
+
 /**
  * Envolve um rate limiter para que, se o STORE (Redis) falhar por motivo de
  * infraestrutura, a requisição passe direto (fail-open) em vez de travar
@@ -19,6 +21,7 @@ const rateLimitHandlerAccount = () => {
  * sendo bloqueado normalmente, porque é um AppError intencional.
  */
 
+// --- RATE LIMITERS REDIS ---
 const ipLimiterRedis = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
@@ -30,11 +33,9 @@ const ipLimiterRedis = rateLimit({
             try {
                 return await redisClient.call(command!, ...rest);
             } catch (error: unknown) {
-                // Silencia apenas o erro chato do terminal na inicialização da API
                 if (command?.toUpperCase() === 'SCRIPT') {
                     return 'dummy-sha-to-bypass-init-error';
                 }
-                // Deixa explodir na cara do withFailOpen durante o funcionamento normal!
                 throw error;
             }
         }) as SendCommandFn,
@@ -44,13 +45,13 @@ const ipLimiterRedis = rateLimit({
 });
 
 export const accountLimiterRedis = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 5, // mais restritivo que o de IP
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
-        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : 'unknow';
-        return `account:${email}`;
+        const email = typeof req.body?.email === 'string' ? req.body.email : 'unknown';
+        return getAccountKey(email);
     },
     store: new RedisStore({
         sendCommand: (async (...args: string[]) => {
@@ -58,11 +59,9 @@ export const accountLimiterRedis = rateLimit({
             try {
                 return await redisClient.call(command!, ...rest);
             } catch (error: unknown) {
-                // Silencia apenas o erro chato do terminal na inicialização da API
                 if (command?.toUpperCase() === 'SCRIPT') {
                     return 'dummy-sha-to-bypass-init-error';
                 }
-                // Deixa explodir na cara do withFailOpen durante o funcionamento normal!
                 throw error;
             }
         }) as SendCommandFn,
@@ -71,7 +70,7 @@ export const accountLimiterRedis = rateLimit({
     handler: rateLimitHandlerAccount,
 });
 
-// Fallback: em memória local, sem 'store' customizado = usa o MemoryStore padrão da lib
+// --- RATE LIMITERS FALLBACK (MEMÓRIA) ---
 const ipLimiterMemoryFallback = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
@@ -82,11 +81,40 @@ const ipLimiterMemoryFallback = rateLimit({
 
 const accountLimiterMemoryFallback = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 5, // Corrigido de 10 para 5 para manter consistência com o Redis
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Corrigido: Agora o Fallback também limita por e-mail!
+        const email = typeof req.body?.email === 'string' ? req.body.email : 'unknown';
+        return getAccountKey(email);
+    },
     handler: rateLimitHandlerAccount,
 });
 
 export const authIpRateLimiter = withFailOpen(ipLimiterRedis, ipLimiterMemoryFallback, 'ip');
 export const authAccountRateLimiter = withFailOpen(accountLimiterRedis, accountLimiterMemoryFallback, 'account');
+
+/**
+ * Limpa o contador de tentativas de login (tanto de IP quanto de Conta)
+ * Deve ser chamada após um login efetuado com SUCESSO.
+ */
+export async function resetAuthRateLimits(ip: string, email: string): Promise<void> {
+    const formattedEmail = getAccountKey(email);
+
+    try {
+        // Tenta resetar nos stores do Redis
+        accountLimiterRedis.resetKey(formattedEmail);
+        ipLimiterRedis.resetKey(ip);
+    } catch (error) {
+        console.error('⚠️ [RateLimiter] Erro ao resetar chaves no Redis (silenciado):', error);
+    }
+
+    try {
+        // Reseta também nos stores de memória por garantia
+        accountLimiterMemoryFallback.resetKey(formattedEmail);
+        ipLimiterMemoryFallback.resetKey(ip);
+    } catch (error) {
+        console.error('⚠️ [RateLimiter] Erro ao resetar chaves no Fallback (silenciado):', error);
+    }
+}

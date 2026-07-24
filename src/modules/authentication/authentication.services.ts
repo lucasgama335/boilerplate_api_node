@@ -36,7 +36,6 @@ export class AuthenticateUserService {
         const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : DUMMY_HASH);
 
         if (!user || !passwordMatch) {
-            // Registra tentativa de login
             await this.loginAttemptRepository.generateAttempt('fail', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user?.id);
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
@@ -49,17 +48,15 @@ export class AuthenticateUserService {
         const hashedRefreshToken = hashToken(rawRefreshToken);
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
-        // expiresAt.setTime(expiresAt.getTime() + 10 * 1000);
 
         await this.refreshTokenRepository.create(user.id, hashedRefreshToken, expiresAt, ipAddress, location.city, location.region, location.country, device.os, device.deviceType);
 
-        const { passwordHash: _, ...userWihoutPassword } = user;
+        const { passwordHash: _, ...userWithoutPassword } = user;
 
-        // Registra tentativa de login
         await this.loginAttemptRepository.generateAttempt('success', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user.id);
 
         return {
-            user: userWihoutPassword,
+            user: userWithoutPassword,
             token,
             refreshToken: rawRefreshToken,
             refreshTokenExpiresAt: expiresAt,
@@ -80,16 +77,14 @@ export class AuthenticateUserService {
 
         // Valida se já foi revogado
         if (tokenRecord.revoked) {
-            // Dica de segurança avançada: Se um token revogado for tentado,
-            // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
             await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
             await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
             throw new AppError('Refresh token inválido ou já utilizado.', 401);
         }
 
         // Valida se expirou
-        const ahora = new Date();
-        if (ahora > new Date(tokenRecord.expiresAt)) {
+        const nowDate = new Date();
+        if (nowDate > new Date(tokenRecord.expiresAt)) {
             throw new AppError('Refresh token expirado.', 401);
         }
 
@@ -102,10 +97,8 @@ export class AuthenticateUserService {
         // Gera um novo Refresh Token (par de rotação)
         const newRawRefreshToken = crypto.randomBytes(64).toString('hex');
         const newHashedRefreshToken = hashToken(newRawRefreshToken);
-
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
-        // expiresAt.setTime(expiresAt.getTime() + 10 * 1000);
 
         const location = this.geolocationProvider.lookup(ipAddress);
         const device = this.userAgentProvider.parse(userAgentString);
