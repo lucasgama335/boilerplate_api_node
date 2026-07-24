@@ -57,7 +57,7 @@ export class AuthenticateController {
         const userId = req.user.id;
 
         // Recebe a decisão do Front-end (padrão: desconectar tudo)
-        const keepCurrentSession = true;
+        const keepCurrentSession = req.body?.keepCurrentSession || false;
 
         // Recupera o Refresh Token atual do cookie
         const refreshTokenString = req.cookies.refreshToken;
