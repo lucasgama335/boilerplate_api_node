@@ -28,7 +28,7 @@ describe('Authentication Service (Unit Test)', () => {
 
         hashProviderMock = {
             compare: vi.fn(),
-            hash: vi.fn().mockResolvedValue('hashed-password'),
+            hash: vi.fn().mockResolvedValue('hashed-password-result'),
         };
 
         tokenProviderMock = {
@@ -61,6 +61,44 @@ describe('Authentication Service (Unit Test)', () => {
             userAgentProviderMock,
             tokenValidityProvider as any,
         );
+    });
+
+    describe('RegisterUser', () => {
+        it('deve registrar um novo usuário com sucesso e aplicar hash na senha', async () => {
+            const user = await authService.registerUser({
+                firstName: 'Jane',
+                lastName: 'Doe',
+                email: 'jane@example.com',
+                password: 'secure-password-123',
+                passwordConfirmation: 'secure-password-123',
+            });
+
+            expect(user).toHaveProperty('id');
+            expect(user.email).toBe('jane@example.com');
+            expect(hashProviderMock.hash).toHaveBeenCalledWith('secure-password-123');
+
+            const savedUser = await usersRepository.findByEmail('jane@example.com', true);
+            expect(savedUser?.passwordHash).toBe('hashed-password-result');
+        });
+
+        it('deve lançar um erro ao tentar registrar um e-mail que já existe', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'existing@example.com',
+                passwordHash: 'some-hash',
+            });
+
+            await expect(
+                authService.registerUser({
+                    firstName: 'Other',
+                    lastName: 'Person',
+                    email: 'existing@example.com',
+                    password: 'password-123',
+                    passwordConfirmation: 'password-123',
+                }),
+            ).rejects.toBeInstanceOf(AppError);
+        });
     });
 
     describe('LoginUser', () => {
@@ -139,6 +177,10 @@ describe('Authentication Service (Unit Test)', () => {
     });
 
     describe('Refresh', () => {
+        it('deve lançar um erro se o refresh token não for fornecido', async () => {
+            await expect(authService.refresh('', '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
+        });
+
         it('deve atualizar o token com sucesso usando um refresh token válido (rotação)', async () => {
             const user = await usersRepository.create({
                 firstName: 'John',
@@ -159,10 +201,9 @@ describe('Authentication Service (Unit Test)', () => {
             expect(result).toHaveProperty('refreshToken');
             expect(result.refreshToken).not.toBe(rawToken);
 
-            // Confirma que o token antigo foi revogado (rotação) e um novo foi criado
             const oldRecord = await refreshTokenRepository.findByTokenHash(hashedToken);
             expect(oldRecord?.revoked).toBe(true);
-            expect(refreshTokenRepository.items).toHaveLength(2); // Antigo revogado + novo gerado
+            expect(refreshTokenRepository.items).toHaveLength(2);
         });
 
         it('deve revogar todos os tokens do usuário se tentar reutilizar um refresh token já revogado (detecção de roubo)', async () => {
@@ -179,12 +220,10 @@ describe('Authentication Service (Unit Test)', () => {
 
             const tokenId = await refreshTokenRepository.create(user.id, hashedToken, expiresAt, '127.0.0.1', 'São Paulo', 'SP', 'Brazil', 'Windows', 'Desktop');
 
-            // Simula que o token já havia sido revogado anteriormente
             await refreshTokenRepository.revokeToken(tokenId);
 
             await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
 
-            // Garante que todos os tokens do usuário foram revogados por segurança
             expect(refreshTokenRepository.items.every((t) => t.revoked)).toBe(true);
         });
 
@@ -203,6 +242,47 @@ describe('Authentication Service (Unit Test)', () => {
             await refreshTokenRepository.create(user.id, hashedToken, expiresAt, '127.0.0.1', 'São Paulo', 'SP', 'Brazil', 'Windows', 'Desktop');
 
             await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
+        });
+    });
+
+    describe('RevokeByRawToken (Logout Individual)', () => {
+        it('deve revogar um token específico com sucesso', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hash',
+            });
+
+            const rawToken = 'token-to-revoke';
+            const hashedToken = hashToken(rawToken);
+            await refreshTokenRepository.create(user.id, hashedToken, new Date(Date.now() + 86400000), '127.0.0.1', 'SP', 'SP', 'BR', 'Win', 'Desktop');
+
+            await authService.revokeByRawToken(rawToken);
+
+            const record = await refreshTokenRepository.findByTokenHash(hashedToken);
+            expect(record?.revoked).toBe(true);
+        });
+
+        it('deve lançar erro se o token a ser revogado não for encontrado', async () => {
+            await expect(authService.revokeByRawToken('token-que-nao-existe')).rejects.toBeInstanceOf(AppError);
+        });
+
+        it('deve disparar segurança defensiva se tentar revogar um token que já estava revogado', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hash',
+            });
+
+            const rawToken = 'already-revoked-token';
+            const hashedToken = hashToken(rawToken);
+            const tokenId = await refreshTokenRepository.create(user.id, hashedToken, new Date(Date.now() + 86400000), '127.0.0.1', 'SP', 'SP', 'BR', 'Win', 'Desktop');
+
+            await refreshTokenRepository.revokeToken(tokenId);
+
+            await expect(authService.revokeByRawToken(rawToken)).rejects.toBeInstanceOf(AppError);
         });
     });
 
@@ -227,13 +307,31 @@ describe('Authentication Service (Unit Test)', () => {
 
             expect(result).toHaveProperty('accessToken', 'access-token-jwt-123');
 
-            // A sessão atual deve continuar ativa (não revogada)
             const currentRecord = await refreshTokenRepository.findByTokenHash(currentHashed);
             expect(currentRecord?.revoked).toBe(false);
 
-            // A outra sessão deve ter sido revogada
             const otherRecord = await refreshTokenRepository.findByTokenHash(otherHashed);
             expect(otherRecord?.revoked).toBe(true);
+        });
+
+        it('deve realizar logout global (destruir todos os tokens) quando keepCurrentSession for false', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hash',
+            });
+
+            const token1 = hashToken('token-1');
+            const token2 = hashToken('token-2');
+
+            await refreshTokenRepository.create(user.id, token1, new Date(Date.now() + 86400000), '127', 'SP', 'SP', 'BR', 'Win', 'Desk');
+            await refreshTokenRepository.create(user.id, token2, new Date(Date.now() + 86400000), '127', 'SP', 'SP', 'BR', 'Win', 'Desk');
+
+            const result = await authService.revokeSessionsService(user.id, false);
+
+            expect(result).toHaveProperty('accessToken', null);
+            expect(refreshTokenRepository.items.every((t) => t.revoked)).toBe(true);
         });
     });
 });
