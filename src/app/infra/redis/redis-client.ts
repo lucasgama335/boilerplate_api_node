@@ -1,13 +1,14 @@
+import { env } from '@/env';
 import Redis from 'ioredis';
 
 export const redisClient = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: Number(process.env.REDIS_PORT) || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
-    lazyConnect: true, // 👈 Não conecta imediatamente ao importar o arquivo
-    enableOfflineQueue: false, // falha rápido, não enfileira comando esperando reconexão
-    maxRetriesPerRequest: 1, // não fica tentando um comando várias vezes antes de desistir
-    retryStrategy: (times) => Math.min(times * 200, 2000), // reconexão em BACKGROUND, sem travar requisições
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD,
+    lazyConnect: true,
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 1,
+    retryStrategy: (times) => Math.min(times * 200, 2000),
 });
 
 redisClient.on('error', (err) => {

@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as crypto from 'node:crypto';
 import { RefreshToken } from '../authentication.types';
+import { TransactionClient } from '../refresh-tokens.repository';
 
 export interface IFakeRefreshTokenRepository {
     create(
@@ -12,10 +14,12 @@ export interface IFakeRefreshTokenRepository {
         country: string | null,
         os: string | null,
         deviceType: string | null,
+        db?: TransactionClient,
     ): Promise<string>;
     findByTokenHash(hashedToken: string): Promise<RefreshToken | null>;
-    revokeToken(id: string): Promise<void>;
-    revokeAllTokensByUser(userId: string, exceptTokenId?: string): Promise<void>;
+    revokeToken(id: string, db?: TransactionClient): Promise<void>;
+    revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void>;
+    transaction<T>(fn: (db: any) => Promise<T>): Promise<T>;
 }
 
 export class InMemoryRefreshTokenRepository implements IFakeRefreshTokenRepository {
@@ -31,6 +35,7 @@ export class InMemoryRefreshTokenRepository implements IFakeRefreshTokenReposito
         country: string | null,
         os: string | null,
         deviceType: string | null,
+        _db?: TransactionClient,
     ): Promise<string> {
         const id = crypto.randomUUID();
 
@@ -39,7 +44,7 @@ export class InMemoryRefreshTokenRepository implements IFakeRefreshTokenReposito
             userId,
             hashedToken,
             expiresAt,
-            revoked: false,
+            revokedAt: null,
             ipAddress,
             city,
             region,
@@ -61,25 +66,29 @@ export class InMemoryRefreshTokenRepository implements IFakeRefreshTokenReposito
         return tokenRecord || null;
     }
 
-    async revokeToken(id: string): Promise<void> {
+    async revokeToken(id: string, _db?: TransactionClient): Promise<void> {
         const tokenRecord = this.items.find((item) => item.id === id);
         if (tokenRecord) {
-            tokenRecord.revoked = true;
+            tokenRecord.revokedAt = new Date();
             tokenRecord.updatedAt = new Date();
         }
     }
 
-    async revokeAllTokensByUser(userId: string, exceptTokenId?: string): Promise<void> {
+    async revokeAllTokensByUser(userId: string, exceptTokenId?: string, _db?: TransactionClient): Promise<void> {
         this.items.forEach((item) => {
             if (item.userId === userId) {
-                // Mantém o comportamento do Drizzle onde o exceptTokenId é comparado com o hashedToken
                 const isExceptional = exceptTokenId && item.hashedToken === exceptTokenId;
 
-                if (!isExceptional) {
-                    item.revoked = true;
+                if (!isExceptional && !item.revokedAt) {
+                    item.revokedAt = new Date();
                     item.updatedAt = new Date();
                 }
             }
         });
+    }
+
+    // 👇 ADICIONADO: Executa a callback simulando uma transação em memória
+    async transaction<T>(fn: (db: any) => Promise<T>): Promise<T> {
+        return await fn(undefined);
     }
 }

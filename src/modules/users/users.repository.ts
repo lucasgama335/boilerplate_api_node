@@ -35,7 +35,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
         if (!showUserPasswordHash) {
             const { passwordHash: _, ...userWithoutPassword } = result;
-            return (userWithoutPassword as User) || null;
+            return (userWithoutPassword as SafeUser) || null;
         }
 
         return (result as User) || null;
@@ -51,7 +51,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
         if (!showUserPasswordHash) {
             const { passwordHash: _, ...userWithoutPassword } = result;
-            return (userWithoutPassword as User) || null;
+            return (userWithoutPassword as SafeUser) || null;
         }
 
         return (result as User) || null;

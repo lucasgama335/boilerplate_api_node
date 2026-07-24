@@ -1,7 +1,9 @@
 import { DatabaseType } from '@/database';
 import { refreshTokens } from '@/database/schema';
-import { and, eq, not } from 'drizzle-orm';
+import { and, eq, isNotNull, not } from 'drizzle-orm';
 import { RefreshToken } from './authentication.types';
+
+export type TransactionClient = Parameters<Parameters<DatabaseType['transaction']>[0]>[0];
 
 export interface IRefreshTokenRepository {
     create(
@@ -14,10 +16,12 @@ export interface IRefreshTokenRepository {
         country: string | null,
         os: string | null,
         deviceType: string | null,
+        db?: TransactionClient,
     ): Promise<string>;
     findByTokenHash(hashedToken: string): Promise<RefreshToken | null>;
-    revokeToken(id: string): Promise<void>;
-    revokeAllTokensByUser(userId: string, exceptTokenId?: string): Promise<void>;
+    revokeToken(id: string, db?: TransactionClient): Promise<void>;
+    revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void>;
+    transaction<T>(fn: (db: TransactionClient) => Promise<T>): Promise<T>;
 }
 
 export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
@@ -33,14 +37,16 @@ export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
         country: string | null,
         os: string | null,
         deviceType: string | null,
+        db?: TransactionClient,
     ): Promise<string> {
-        const [tokenRecord] = await this.db
+        const executor = db || this.db;
+        const [tokenRecord] = await executor
             .insert(refreshTokens)
             .values({
                 userId,
                 hashedToken,
                 expiresAt,
-                revoked: false,
+                revokedAt: null,
                 ipAddress,
                 city,
                 region,
@@ -59,21 +65,27 @@ export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
         return tokenRecord || null;
     }
 
-    async revokeToken(id: string): Promise<void> {
-        await this.db.update(refreshTokens).set({ revoked: true, updatedAt: new Date() }).where(eq(refreshTokens.id, id)).returning();
+    async revokeToken(id: string, db?: TransactionClient): Promise<void> {
+        const executor = db || this.db;
+        await executor.update(refreshTokens).set({ revokedAt: new Date(), updatedAt: new Date() }).where(eq(refreshTokens.id, id));
     }
 
-    async revokeAllTokensByUser(userId: string, exceptTokenId?: string): Promise<void> {
-        const conditions = [eq(refreshTokens.userId, userId)];
+    async revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void> {
+        const executor = db || this.db;
+        const conditions = [eq(refreshTokens.userId, userId), isNotNull(refreshTokens.revokedAt)];
 
-        // Se a intenção for manter a sessão atual, adicionamos a restrição na query
         if (exceptTokenId) {
             conditions.push(not(eq(refreshTokens.hashedToken, exceptTokenId)));
         }
 
-        await this.db
+        await executor
             .update(refreshTokens)
-            .set({ revoked: true })
-            .where(and(...conditions));
+            .set({ revokedAt: new Date() })
+            .where(and(eq(refreshTokens.userId, userId), ...conditions));
+    }
+
+    // 👇 ADICIONE ESTE MÉTODO NA CLASSE CONCRETA
+    async transaction<T>(fn: (db: TransactionClient) => Promise<T>): Promise<T> {
+        return await this.db.transaction(fn);
     }
 }

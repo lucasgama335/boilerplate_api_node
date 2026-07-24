@@ -34,7 +34,7 @@ export class InMemoryUserRepository implements IFakeUserRepository {
 
         if (!showUserPasswordHash) {
             const { passwordHash: _, ...userWithoutPassword } = user;
-            return userWithoutPassword as User;
+            return userWithoutPassword as SafeUser;
         }
 
         return user;

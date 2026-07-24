@@ -5,6 +5,7 @@ import { ITokenValidityProvider } from '@/app/infra/token-validity/TokenValidity
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { hashToken } from '@/app/utils/hash-token';
+import { env } from '@/env';
 import { IUserRepository } from '@/modules/users/users.repository';
 import crypto from 'node:crypto';
 import { SafeUser } from '../users/users.types';
@@ -47,7 +48,7 @@ export class AuthenticateUserService {
         const rawRefreshToken = crypto.randomBytes(64).toString('hex');
         const hashedRefreshToken = hashToken(rawRefreshToken);
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
+        expiresAt.setDate(expiresAt.getDate() + env.REFRESH_TOKEN_EXPIRES_AT);
 
         await this.refreshTokenRepository.create(user.id, hashedRefreshToken, expiresAt, ipAddress, location.city, location.region, location.country, device.os, device.deviceType);
 
@@ -75,47 +76,62 @@ export class AuthenticateUserService {
             throw new AppError('Refresh token não encontrado.', 401);
         }
 
-        // Valida se já foi revogado
-        if (tokenRecord.revoked) {
-            await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
-            await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
-            throw new AppError('Refresh token inválido ou já utilizado.', 401);
-        }
-
-        // Valida se expirou
         const nowDate = new Date();
+
+        // Valida se expirou por data de validade absoluta
         if (nowDate > new Date(tokenRecord.expiresAt)) {
             throw new AppError('Refresh token expirado.', 401);
         }
 
-        // ROTAÇÃO DE TOKEN: Revoga o token atual para que não possa ser reutilizado
-        await this.refreshTokenRepository.revokeToken(tokenRecord.id);
+        // Valida se já foi revogado (Tratamento com Grace Period para concorrência)
+        if (tokenRecord.revokedAt) {
+            const diffInSeconds = (nowDate.getTime() - new Date(tokenRecord.revokedAt).getTime()) / 1000;
+            const GRACE_PERIOD_SECONDS = 20;
 
-        // Gera um novo Access Token
-        const accessToken = this.tokenProvider.generate(tokenRecord.userId);
+            // Se passou da janela de graça, é tentativa de roubo/reuso malicioso!
+            if (diffInSeconds > GRACE_PERIOD_SECONDS) {
+                await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
+                await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
+                throw new AppError('Sessão comprometida. Faça login novamente.', 401);
+            }
+        }
 
-        // Gera um novo Refresh Token (par de rotação)
-        const newRawRefreshToken = crypto.randomBytes(64).toString('hex');
-        const newHashedRefreshToken = hashToken(newRawRefreshToken);
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (Number(process.env.REFRESH_TOKEN_EXPIRES_AT) || 7));
+        // ROTAÇÃO DE TOKEN COM TRANSAÇÃO ATÔMICA
+        const { accessToken, newRawRefreshToken, expiresAt } = await this.refreshTokenRepository.transaction(async (tx) => {
+            if (!tokenRecord.revokedAt) {
+                await this.refreshTokenRepository.revokeToken(tokenRecord.id, tx);
+            }
 
-        const location = this.geolocationProvider.lookup(ipAddress);
-        const device = this.userAgentProvider.parse(userAgentString);
+            const newAccessToken = this.tokenProvider.generate(tokenRecord.userId);
+            const rawRefresh = crypto.randomBytes(64).toString('hex');
+            const hashedRefresh = hashToken(rawRefresh);
+            const exp = new Date();
+            exp.setDate(exp.getDate() + env.REFRESH_TOKEN_EXPIRES_AT);
 
-        await this.refreshTokenRepository.create(
-            tokenRecord.userId,
-            newHashedRefreshToken,
-            expiresAt,
-            ipAddress,
-            location.city,
-            location.region,
-            location.country,
-            device.os,
-            device.deviceType,
-        );
+            const locationInfo = this.geolocationProvider.lookup(ipAddress);
+            const deviceInfo = this.userAgentProvider.parse(userAgentString);
 
-        return { token: accessToken, refreshToken: newRawRefreshToken, refreshTokenExpiresAt: expiresAt };
+            await this.refreshTokenRepository.create(
+                tokenRecord.userId,
+                hashedRefresh,
+                exp,
+                ipAddress,
+                locationInfo.city,
+                locationInfo.region,
+                locationInfo.country,
+                deviceInfo.os,
+                deviceInfo.deviceType,
+                tx,
+            );
+
+            return {
+                accessToken: newAccessToken,
+                newRawRefreshToken: rawRefresh,
+                expiresAt: exp,
+            };
+        });
+
+        return { accessToken, newRawRefreshToken, expiresAt };
     }
 
     async revokeByRawToken(token: string): Promise<void> {
@@ -125,13 +141,18 @@ export class AuthenticateUserService {
             throw new AppError('Refresh token não encontrado.', 401);
         }
 
+        const nowDate = new Date();
+
         // Valida se já foi revogado
-        if (tokenRecord.revoked) {
-            // Dica de segurança avançada: Se um token revogado for tentado,
-            // pode indicar roubo de token. Aqui poderíamos revogar todos os tokens do usuário.
-            await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
-            await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
-            throw new AppError('Refresh token inválido ou já utilizado.', 401);
+        if (tokenRecord.revokedAt) {
+            const diffInSeconds = (nowDate.getTime() - new Date(tokenRecord.revokedAt).getTime()) / 1000;
+            const GRACE_PERIOD_SECONDS = 20;
+
+            if (diffInSeconds > GRACE_PERIOD_SECONDS) {
+                await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
+                await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
+                throw new AppError('Refresh token inválido ou já utilizado.', 401);
+            }
         }
 
         await this.refreshTokenRepository.revokeToken(tokenRecord.id);

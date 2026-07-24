@@ -1,9 +1,10 @@
+import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 
 // Inicialize o Sentry o mais cedo possível
 Sentry.init({
-    dsn: process.env.SENTRY_DSN, // Você pega essa URL gratuita criando uma conta no Sentry.io
-    environment: process.env.NODE_ENV || 'development',
+    dsn: env.SENTRY_DSN, // Você pega essa URL gratuita criando uma conta no Sentry.io
+    environment: env.NODE_ENV || 'development',
     enableLogs: true,
     // tracesSampleRate de 1.0 captura 100% das transações para métricas de performance.
     // Em produção com alto tráfego, você pode reduzir para 0.2 (20%).
@@ -19,10 +20,10 @@ import { errorHandler } from './http/middlewares/error-handler-middleware';
 export const app = express();
 
 // Middlewares globais básicos
-app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 0); // Número reais de proxys que batem na API
+app.set('trust proxy', env.TRUST_PROXY_HOPS); // Número reais de proxys que batem na API
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL, // nunca '*' quando usa cookies/credentials
+        origin: env.FRONTEND_URL, // nunca '*' quando usa cookies/credentials
         credentials: true, // permite o navegador enviar/receber cookies
     }),
 );

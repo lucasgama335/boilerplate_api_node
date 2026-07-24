@@ -197,41 +197,13 @@ describe('Authentication Service (Unit Test)', () => {
 
             const result = await authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0');
 
-            expect(result).toHaveProperty('token', 'access-token-jwt-123');
-            expect(result).toHaveProperty('refreshToken');
-            expect(result.refreshToken).not.toBe(rawToken);
+            expect(result).toHaveProperty('accessToken', 'access-token-jwt-123');
+            expect(result).toHaveProperty('newRawRefreshToken');
+            expect(result.newRawRefreshToken).not.toBe(rawToken);
 
             const oldRecord = await refreshTokenRepository.findByTokenHash(hashedToken);
-            expect(oldRecord?.revoked).toBe(true);
+            expect(oldRecord?.revokedAt).not.toBeNull();
             expect(refreshTokenRepository.items).toHaveLength(2);
-        });
-
-        it('deve revogar todos os tokens do usuário se tentar reutilizar um refresh token já revogado (detecção de roubo)', async () => {
-            const user = await usersRepository.create({
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                passwordHash: 'valid-hash',
-            });
-
-            const rawToken = 'compromised-token';
-            const hashedToken = hashToken(rawToken);
-            const expiresAt = new Date(Date.now() + 86400000);
-
-            const tokenId = await refreshTokenRepository.create(user.id, hashedToken, expiresAt, '127.0.0.1', 'São Paulo', 'SP', 'Brazil', 'Windows', 'Desktop');
-
-            await refreshTokenRepository.revokeToken(tokenId);
-
-            // 🕵️ Adicionamos o espião no provider!
-            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
-
-            await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
-
-            // Garante que os Refresh Tokens foram pro lixo
-            expect(refreshTokenRepository.items.every((t) => t.revoked)).toBe(true);
-
-            // ✅ Garante que os Access Tokens também foram pra guilhotina!
-            expect(revokeTokensSpy).toHaveBeenCalledWith(user.id);
         });
 
         it('deve lançar um erro ao tentar atualizar usando um refresh token expirado', async () => {
@@ -252,6 +224,61 @@ describe('Authentication Service (Unit Test)', () => {
         });
     });
 
+    describe('Refresh com Grace Period (Concorrência)', () => {
+        it('deve permitir a atualização com sucesso se o token foi revogado dentro da janela de graça (concorrência)', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hash',
+            });
+
+            const rawToken = 'grace-period-token';
+            const hashedToken = hashToken(rawToken);
+            const expiresAt = new Date(Date.now() + 86400000);
+
+            await refreshTokenRepository.create(user.id, hashedToken, expiresAt, '127.0.0.1', 'São Paulo', 'SP', 'Brazil', 'Windows', 'Desktop');
+
+            // Simula que o token foi revogado há apenas 5 segundos (dentro da janela de 20s)
+            const tokenRecord = await refreshTokenRepository.findByTokenHash(hashedToken);
+            if (tokenRecord) {
+                tokenRecord.revokedAt = new Date(Date.now() - 5000);
+            }
+
+            const result = await authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0');
+
+            expect(result).toHaveProperty('accessToken', 'access-token-jwt-123');
+            expect(result).toHaveProperty('newRawRefreshToken');
+        });
+
+        it('deve revogar todas as sessões se tentar usar um token revogado fora da janela de graça (reuso malicioso)', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hash',
+            });
+
+            const rawToken = 'expired-grace-token';
+            const hashedToken = hashToken(rawToken);
+            const expiresAt = new Date(Date.now() + 86400000);
+
+            await refreshTokenRepository.create(user.id, hashedToken, expiresAt, '127.0.0.1', 'São Paulo', 'SP', 'Brazil', 'Windows', 'Desktop');
+
+            // Simula que o token foi revogado há 25 segundos (FORA da janela de 20s)
+            const tokenRecord = await refreshTokenRepository.findByTokenHash(hashedToken);
+            if (tokenRecord) {
+                tokenRecord.revokedAt = new Date(Date.now() - 25000);
+            }
+
+            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
+
+            await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
+
+            expect(revokeTokensSpy).toHaveBeenCalledWith(user.id);
+        });
+    });
+
     describe('RevokeByRawToken (Logout Individual)', () => {
         it('deve revogar um token específico com sucesso', async () => {
             const user = await usersRepository.create({
@@ -268,14 +295,14 @@ describe('Authentication Service (Unit Test)', () => {
             await authService.revokeByRawToken(rawToken);
 
             const record = await refreshTokenRepository.findByTokenHash(hashedToken);
-            expect(record?.revoked).toBe(true);
+            expect(record?.revokedAt).not.toBeNull();
         });
 
         it('deve lançar erro se o token a ser revogado não for encontrado', async () => {
             await expect(authService.revokeByRawToken('token-que-nao-existe')).rejects.toBeInstanceOf(AppError);
         });
 
-        it('deve disparar segurança defensiva se tentar revogar um token que já estava revogado', async () => {
+        it('deve disparar segurança defensiva se tentar revogar um token que já estava revogado há muito tempo', async () => {
             const user = await usersRepository.create({
                 firstName: 'John',
                 lastName: 'Doe',
@@ -289,12 +316,16 @@ describe('Authentication Service (Unit Test)', () => {
 
             await refreshTokenRepository.revokeToken(tokenId);
 
-            // 🕵️ Adicionamos o espião no provider!
+            // Simula que ele já estava revogado há mais de 20 segundos
+            const tokenRecord = await refreshTokenRepository.findByTokenHash(hashedToken);
+            if (tokenRecord) {
+                tokenRecord.revokedAt = new Date(Date.now() - 25000);
+            }
+
             const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
 
             await expect(authService.revokeByRawToken(rawToken)).rejects.toBeInstanceOf(AppError);
 
-            // ✅ Garante que os Access Tokens também foram pra guilhotina!
             expect(revokeTokensSpy).toHaveBeenCalledWith(user.id);
         });
     });
@@ -321,10 +352,10 @@ describe('Authentication Service (Unit Test)', () => {
             expect(result).toHaveProperty('accessToken', 'access-token-jwt-123');
 
             const currentRecord = await refreshTokenRepository.findByTokenHash(currentHashed);
-            expect(currentRecord?.revoked).toBe(false);
+            expect(currentRecord?.revokedAt).toBeNull();
 
             const otherRecord = await refreshTokenRepository.findByTokenHash(otherHashed);
-            expect(otherRecord?.revoked).toBe(true);
+            expect(otherRecord?.revokedAt).not.toBeNull();
         });
 
         it('deve realizar logout global (destruir todos os tokens) quando keepCurrentSession for false', async () => {
@@ -344,7 +375,7 @@ describe('Authentication Service (Unit Test)', () => {
             const result = await authService.revokeSessionsService(user.id, false);
 
             expect(result).toHaveProperty('accessToken', null);
-            expect(refreshTokenRepository.items.every((t) => t.revoked)).toBe(true);
+            expect(refreshTokenRepository.items.every((t) => t.revokedAt !== null)).toBe(true);
         });
     });
 });

@@ -6,3 +6,4 @@ logs/
 
 # Variáveis de ambiente (Segurança inegociável)
 .env
+.env.test

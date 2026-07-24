@@ -57,6 +57,20 @@
       "when": 1784897504516,
       "tag": "0007_workable_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784924522688,
+      "tag": "0008_hard_magneto",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784924806242,
+      "tag": "0009_real_norman_osborn",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { env } from '@/env';
 import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
@@ -5,6 +6,6 @@ export default defineConfig({
     out: './drizzle', // Pasta onde os arquivos SQL das migrações serão gerados
     dialect: 'postgresql',
     dbCredentials: {
-        url: process.env.DATABASE_URL as string,
+        url: env.DATABASE_URL as string,
     },
 });
