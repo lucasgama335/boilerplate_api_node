@@ -1,3 +1,4 @@
+import { AppError } from '@/app/exceptions/AppError';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from '../../application/AuthenticateUserService';
@@ -30,6 +31,9 @@ export class AuthenticateController {
 
     refreshToken = async (req: Request, res: Response): Promise<Response> => {
         const refreshToken = req.cookies?.refreshToken;
+        if (!refreshToken) {
+            throw new AppError('Refresh token não encontrado.', 401);
+        }
 
         const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.refreshTokensService.refresh(refreshToken);
         setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);
