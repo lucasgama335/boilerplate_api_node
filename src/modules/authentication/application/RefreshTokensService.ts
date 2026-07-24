@@ -12,6 +12,10 @@ export class RefreshTokensService {
     ) {}
 
     async refresh(rawToken: string) {
+        if (!rawToken) {
+            throw new AppError('Refresh token não encontrado.', 401);
+        }
+
         const hashedToken = hashToken(rawToken);
         const tokenRecord = await this.refreshTokenRepository.findByTokenHash(hashedToken);
 

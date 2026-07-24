@@ -1,4 +1,4 @@
-import { ensureAuthenticatedMiddleware } from '@/app/http/middlewares/ensure-authenticated-middleware';
+import { authMiddleware } from '@/app/composition-root';
 import { databaseInstance } from '@/database';
 import { Router } from 'express';
 import { GetUserProfileService } from './application/GetUserProfileService';
@@ -18,4 +18,4 @@ const profileController = new ProfileController(getUserProfileService);
 // ==========================================
 // 🚀 ROTAS DO MÓDULO
 // ==========================================
-userRoutes.get('/', ensureAuthenticatedMiddleware, profileController.showProfile);
+userRoutes.get('/', authMiddleware, profileController.showProfile);
