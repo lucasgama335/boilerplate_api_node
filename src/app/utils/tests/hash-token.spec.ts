@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashToken } from './hash-token';
+import { hashToken } from '../hash-token';
 
 describe('Hash Token Utility', () => {
     it('deve retornar um hash criptografado para uma string limpa', () => {

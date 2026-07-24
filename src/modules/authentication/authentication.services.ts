@@ -1,9 +1,9 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { IGeolocationProvider } from '@/app/infra/geolocation/GeolocationProvider';
 import { IHashProvider } from '@/app/infra/hashing/HashProvider';
-import { ITokenValidityProvider } from '@/app/infra/token-validity/TokenValidityProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
+import { IUserSessionRevocationProvider } from '@/app/infra/user-session-revocation/UserSessionRevocationProvider';
 import { hashToken } from '@/app/utils/hash-token';
 import { env } from '@/env';
 import { IUserRepository } from '@/modules/users/users.repository';
@@ -22,7 +22,7 @@ export class AuthenticateUserService {
         private readonly tokenProvider: ITokenProvider,
         private readonly geolocationProvider: IGeolocationProvider,
         private readonly userAgentProvider: IUserAgentProvider,
-        private readonly tokenValidityProvider: ITokenValidityProvider,
+        private readonly userSessionRevocationProvider: IUserSessionRevocationProvider,
     ) {}
 
     async loginUser(data: AuthenticateUserDTO, ipAddress: string, userAgentString: string) {
@@ -91,7 +91,7 @@ export class AuthenticateUserService {
             // Se passou da janela de graça, é tentativa de roubo/reuso malicioso!
             if (diffInSeconds > GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
-                await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
+                await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Sessão comprometida. Faça login novamente.', 401);
             }
         }
@@ -150,7 +150,7 @@ export class AuthenticateUserService {
 
             if (diffInSeconds > GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
-                await this.tokenValidityProvider.revokeAllTokens(tokenRecord.userId);
+                await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Refresh token inválido ou já utilizado.', 401);
             }
         }
@@ -160,7 +160,7 @@ export class AuthenticateUserService {
 
     async revokeSessionsService(userId: string, keepCurrentSession: boolean, currentRefreshToken?: string) {
         // 1. Invalida todos os Access Tokens emitidos no passado (incluindo o da sessão atual)
-        await this.tokenValidityProvider.revokeAllTokens(userId);
+        await this.userSessionRevocationProvider.revokeAllTokens(userId);
 
         if (keepCurrentSession && currentRefreshToken) {
             // 2A. Mantém apenas o Refresh Token atual vivo no banco

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppError } from '@/app/exceptions/AppError';
-import { InMemoryTokenValidityProvider } from '@/app/infra/token-validity/fakes/fake-token-validity-provider';
+import { InMemoryUserSessionRevocationProvider } from '@/app/infra/user-session-revocation/fakes/fake-user-session-revocation-provider';
 import { hashToken } from '@/app/utils/hash-token';
 import { InMemoryUserRepository } from '@/modules/users/fakes/fake-users.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,7 +13,7 @@ describe('Authentication Service (Unit Test)', () => {
     let usersRepository: InMemoryUserRepository;
     let loginAttemptsRepository: InMemoryLoginAttemptsRepository;
     let refreshTokenRepository: InMemoryRefreshTokenRepository;
-    let tokenValidityProvider: InMemoryTokenValidityProvider;
+    let userSessionRevocationProvider: InMemoryUserSessionRevocationProvider;
 
     let hashProviderMock: any;
     let tokenProviderMock: any;
@@ -24,7 +24,7 @@ describe('Authentication Service (Unit Test)', () => {
         usersRepository = new InMemoryUserRepository();
         loginAttemptsRepository = new InMemoryLoginAttemptsRepository();
         refreshTokenRepository = new InMemoryRefreshTokenRepository();
-        tokenValidityProvider = new InMemoryTokenValidityProvider(usersRepository);
+        userSessionRevocationProvider = new InMemoryUserSessionRevocationProvider(usersRepository);
 
         hashProviderMock = {
             compare: vi.fn(),
@@ -59,7 +59,7 @@ describe('Authentication Service (Unit Test)', () => {
             tokenProviderMock,
             geolocationProviderMock,
             userAgentProviderMock,
-            tokenValidityProvider as any,
+            userSessionRevocationProvider as any,
         );
     });
 
@@ -271,7 +271,7 @@ describe('Authentication Service (Unit Test)', () => {
                 tokenRecord.revokedAt = new Date(Date.now() - 25000);
             }
 
-            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
+            const revokeTokensSpy = vi.spyOn(userSessionRevocationProvider, 'revokeAllTokens');
 
             await expect(authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
 
@@ -322,7 +322,7 @@ describe('Authentication Service (Unit Test)', () => {
                 tokenRecord.revokedAt = new Date(Date.now() - 25000);
             }
 
-            const revokeTokensSpy = vi.spyOn(tokenValidityProvider, 'revokeAllTokens');
+            const revokeTokensSpy = vi.spyOn(userSessionRevocationProvider, 'revokeAllTokens');
 
             await expect(authService.revokeByRawToken(rawToken)).rejects.toBeInstanceOf(AppError);
 

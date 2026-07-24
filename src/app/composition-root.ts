@@ -2,15 +2,16 @@
 import { ensureAuthenticatedMiddleware } from '@/app/http/middlewares/ensure-authenticated-middleware';
 import { GeolocationProvider } from '@/app/infra/geolocation/GeolocationProvider';
 import { HashProvider } from '@/app/infra/hashing/HashProvider';
+import { redisClient } from '@/app/infra/redis/redis-client';
 import { TokenProvider } from '@/app/infra/token/TokenProvider';
 import { UserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { userRepository } from '@/modules/users/users.composition';
-import { TokenValidityProvider } from './infra/token-validity/TokenValidityProvider';
+import { UserSessionRevocationProvider } from './infra/user-session-revocation/UserSessionRevocationProvider';
 
 export const hashProvider = new HashProvider();
 export const tokenProvider = new TokenProvider();
 export const geolocationProvider = new GeolocationProvider();
 export const userAgentProvider = new UserAgentProvider();
-export const tokenValidityProvider = new TokenValidityProvider(userRepository);
+export const userSessionRevocationProvider = new UserSessionRevocationProvider(userRepository, redisClient);
 
-export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider, tokenValidityProvider);
+export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider, userSessionRevocationProvider);

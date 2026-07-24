@@ -1,32 +1,34 @@
 import { env } from '@/env';
 import pino from 'pino';
 
+const isProduction = env.NODE_ENV === 'production';
+
 export const logger = pino({
     level: env.LOG_LEVEL,
-    // Em desenvolvimento, usa o pino-pretty para ficar legível.
-    // Em produção (NODE_ENV=production), cospe JSON puro (mais rápido e ideal para AWS/Datadog).
+
+    // Camada extra de segurança: mesmo que algum código novo esqueça de sanitizar
+    // o payload manualmente, isso impede que header de auth/cookie ou body.password
+    // vazem pro log.
+    redact: {
+        paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]', 'body.password', 'body.passwordConfirmation'],
+        censor: '[REDACTED]',
+    },
+
     transport: {
-        // 'targets' permite enviar o log para vários lugares ao mesmo tempo
         targets: [
-            // 1. Manda pro Console (com pino-pretty pra ficar legível)
-            {
-                target: 'pino-pretty',
-                options: { colorize: true },
-                level: 'info',
-            },
-            // 2. Salva em Arquivo com Rotação (Log Rotation)
+            // Em produção: NDJSON puro no stdout, pra Datadog/CloudWatch conseguirem parsear.
+            // Em dev: pino-pretty, legível no terminal.
+            // Antes o pino-pretty estava fixo pros dois ambientes — o comentário original
+            // dizia "em produção cospe JSON puro", mas isso nunca acontecia de fato.
+            isProduction ? { target: 'pino/file', options: { destination: 1 }, level: 'info' } : { target: 'pino-pretty', options: { colorize: true }, level: 'info' },
+
+            // Salva em Arquivo com Rotação (Log Rotation), em qualquer ambiente
             {
                 target: 'pino-roll',
                 options: {
-                    // O nome base do arquivo (sem data e sem extensão)
                     file: './logs/error',
-
-                    // O formato da data que será injetado (padrão yyyy-MM-dd)
                     dateFormat: 'yyyy-MM-dd',
-
-                    // A extensão que vai no final de tudo
                     extension: '.log',
-
                     frequency: 'daily',
                     size: '10m',
                     mkdir: true,

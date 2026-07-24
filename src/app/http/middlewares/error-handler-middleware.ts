@@ -1,5 +1,7 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { logger } from '@/app/utils/logger';
+import { sanitizeBody } from '@/app/utils/sanitize-body';
+import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
@@ -24,15 +26,15 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     }
 
     // 3. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
-
-    // Dispara o alarme no Sentry (Avisa você no celular/email)
+    // Nunca repassamos req.body cru: em /auth/register e /auth/login ele contém senha
+    // em texto claro, e isso não pode ir pro Sentry nem pro disco.
+    const safeBody = sanitizeBody(req.body);
     Sentry.captureException(err, {
         extra: {
-            body: req.body, // Ajuda a simular o que o usuário enviou
+            body: safeBody,
             params: req.params,
             query: req.query,
         },
-        // Se a requisição passou pelo middleware de autenticação, vinculamos o erro ao usuário!
         user: req.user ? { id: req.user.id } : undefined,
         tags: {
             route: req.originalUrl,
@@ -40,19 +42,20 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
         },
     });
 
-    // Salva no log local do servidor com o Pino (Guarda o Stack Trace completo)
     logger.error(
         {
             err,
             method: req.method,
             path: req.originalUrl,
-            body: req.body,
+            body: safeBody,
             userId: req.user?.id,
         },
         'Unhandled Server Error',
     );
 
-    console.error('🚨 [Unhandled Error]:', err); // Debug no terminal
+    if (env.NODE_ENV === 'development') {
+        console.error('🚨 [Unhandled Error]:', err); // Debug no terminal
+    }
     return res.status(500).json({
         status: 'error',
         message: 'Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',

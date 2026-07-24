@@ -9,6 +9,9 @@ const envSchema = z.object({
     FRONTEND_URL: z.string().url('A URL do frontend deve ser uma URL válida'),
     LOG_LEVEL: z.string().default('info'),
     SENTRY_DSN: z.string().url().optional(),
+    // Sem valor definido, o app.ts decide o default certo por ambiente
+    // (baixo em produção pra economizar quota, alto em dev/test pra ver tudo).
+    SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0, 'Deve ser no mínimo 0').max(1, 'Deve ser no máximo 1').optional(),
 
     // Banco de Dados
     DATABASE_URL: z.string().url('A URL do banco de dados deve ser uma URL válida'),

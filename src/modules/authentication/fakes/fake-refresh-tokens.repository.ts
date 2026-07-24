@@ -18,7 +18,7 @@ export interface IFakeRefreshTokenRepository {
     ): Promise<string>;
     findByTokenHash(hashedToken: string): Promise<RefreshToken | null>;
     revokeToken(id: string, db?: TransactionClient): Promise<void>;
-    revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void>;
+    revokeAllTokensByUser(userId: string, exceptHashedToken?: string, db?: TransactionClient): Promise<void>;
     transaction<T>(fn: (db: any) => Promise<T>): Promise<T>;
 }
 

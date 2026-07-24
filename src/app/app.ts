@@ -2,25 +2,45 @@ import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 
 // Inicialize o Sentry o mais cedo possível
+// Se SENTRY_TRACES_SAMPLE_RATE não for definida, cai no default por ambiente:
+// produção amostra 20% das transações (suficiente pra ter sinal estatístico sem
+// pagar o custo de rastrear cada requisição); fora de produção amostra tudo,
+// já que o volume de tráfego é baixo o bastante pra isso não custar nada.
+const defaultTracesSampleRate = env.NODE_ENV === 'production' ? 0.2 : 1.0;
 Sentry.init({
     dsn: env.SENTRY_DSN, // Você pega essa URL gratuita criando uma conta no Sentry.io
     environment: env.NODE_ENV || 'development',
     enableLogs: true,
-    // tracesSampleRate de 1.0 captura 100% das transações para métricas de performance.
-    // Em produção com alto tráfego, você pode reduzir para 0.2 (20%).
-    tracesSampleRate: 1.0,
+    tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE ?? defaultTracesSampleRate,
 });
 
+import { logger } from '@/app/utils/logger';
 import { routes } from '@/routes';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import pinoHttp from 'pino-http';
 import { errorHandler } from './http/middlewares/error-handler-middleware';
 
 export const app = express();
 
 // Middlewares globais básicos
 app.set('trust proxy', env.TRUST_PROXY_HOPS); // Número reais de proxys que batem na API
+
+// Loga toda requisição (método, rota, status, duração). Antes só existia log quando
+// dava erro — não tinha como ver tráfego normal nem correlacionar uma reclamação
+// de usuário com o que aconteceu no servidor.
+app.use(
+    pinoHttp({
+        logger,
+        customLogLevel: (_req, res, err) => {
+            if (err || res.statusCode >= 500) return 'error';
+            if (res.statusCode >= 400) return 'warn';
+            return 'info';
+        },
+    }),
+);
+
 app.use(
     cors({
         origin: env.FRONTEND_URL, // nunca '*' quando usa cookies/credentials
@@ -31,7 +51,6 @@ app.use(cookieParser());
 app.use(express.json()); // Permite que o Express entenda JSON no body da requisição
 
 // Pluga o nosso Hub Central de rotas na aplicação com o prefixo '/api'
-// Agora a nossa rota final será: POST /api/auth/register
 app.use('/api', routes);
 
 // O interceptador de erros sempre no final!

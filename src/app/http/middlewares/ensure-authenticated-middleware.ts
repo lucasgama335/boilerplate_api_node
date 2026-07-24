@@ -1,6 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { ITokenValidityProvider } from '@/app/infra/token-validity/TokenValidityProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
+import { IUserSessionRevocationProvider } from '@/app/infra/user-session-revocation/UserSessionRevocationProvider';
 import { NextFunction, Request, Response } from 'express';
 
 interface TokenPayload {
@@ -9,7 +9,7 @@ interface TokenPayload {
     exp: number;
 }
 
-export function ensureAuthenticatedMiddleware(tokenProvider: ITokenProvider, tokenValidityProvider: ITokenValidityProvider) {
+export function ensureAuthenticatedMiddleware(tokenProvider: ITokenProvider, userSessionRevocationProvider: IUserSessionRevocationProvider) {
     return async (req: Request, _res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
@@ -28,7 +28,7 @@ export function ensureAuthenticatedMiddleware(tokenProvider: ITokenProvider, tok
 
         // 2. Agora fazemos a checagem de revogação FORA do try/catch.
         // Se disparar o AppError aqui, ele vai direto para o handler global de erros da API.
-        const revokedAt = await tokenValidityProvider.getRevokedAt(decoded.sub);
+        const revokedAt = await userSessionRevocationProvider.getRevokedAt(decoded.sub);
 
         if (revokedAt && decoded.iat < Math.floor(revokedAt.getTime() / 1000)) {
             throw new AppError('Sessão revogada. Faça login novamente.', 401);

@@ -1,5 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { redisClient } from '@/app/infra/redis/redis-client';
+import { logger } from '@/app/utils/logger';
 import { rateLimit } from 'express-rate-limit';
 import { RedisStore, SendCommandFn } from 'rate-limit-redis';
 import { withFailOpen } from './with-fail-open';
@@ -103,18 +104,18 @@ export async function resetAuthRateLimits(ip: string, email: string): Promise<vo
     const formattedEmail = getAccountKey(email);
 
     try {
-        // Tenta resetar nos stores do Redis
         accountLimiterRedis.resetKey(formattedEmail);
         ipLimiterRedis.resetKey(ip);
     } catch (error) {
-        console.error('⚠️ [RateLimiter] Erro ao resetar chaves no Redis (silenciado):', error);
+        // Não é crítico: o pior caso é a janela de rate limit expirar sozinha em até
+        // 15min. Por isso warn (fica visível/buscável), sem Sentry — não vale o ruído.
+        logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Redis (silenciado)');
     }
 
     try {
-        // Reseta também nos stores de memória por garantia
         accountLimiterMemoryFallback.resetKey(formattedEmail);
         ipLimiterMemoryFallback.resetKey(ip);
     } catch (error) {
-        console.error('⚠️ [RateLimiter] Erro ao resetar chaves no Fallback (silenciado):', error);
+        logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Fallback (silenciado)');
     }
 }
