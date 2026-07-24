@@ -1,6 +1,6 @@
 import { DatabaseType } from '@/database';
 import { refreshTokens } from '@/database/schema';
-import { and, eq, isNotNull, not } from 'drizzle-orm';
+import { and, eq, isNull, not } from 'drizzle-orm';
 import { RefreshToken } from './authentication.types';
 
 export type TransactionClient = Parameters<Parameters<DatabaseType['transaction']>[0]>[0];
@@ -20,7 +20,7 @@ export interface IRefreshTokenRepository {
     ): Promise<string>;
     findByTokenHash(hashedToken: string): Promise<RefreshToken | null>;
     revokeToken(id: string, db?: TransactionClient): Promise<void>;
-    revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void>;
+    revokeAllTokensByUser(userId: string, exceptHashedToken?: string, db?: TransactionClient): Promise<void>;
     transaction<T>(fn: (db: TransactionClient) => Promise<T>): Promise<T>;
 }
 
@@ -70,21 +70,24 @@ export class DrizzleRefreshTokenRepository implements IRefreshTokenRepository {
         await executor.update(refreshTokens).set({ revokedAt: new Date(), updatedAt: new Date() }).where(eq(refreshTokens.id, id));
     }
 
-    async revokeAllTokensByUser(userId: string, exceptTokenId?: string, db?: TransactionClient): Promise<void> {
+    async revokeAllTokensByUser(userId: string, exceptHashedToken?: string, db?: TransactionClient): Promise<void> {
         const executor = db || this.db;
-        const conditions = [eq(refreshTokens.userId, userId), isNotNull(refreshTokens.revokedAt)];
 
-        if (exceptTokenId) {
-            conditions.push(not(eq(refreshTokens.hashedToken, exceptTokenId)));
+        // Alvo: apenas tokens ATIVOS (revokedAt IS NULL) do usuário.
+        // Antes filtrava isNotNull(revokedAt) — o inverso do pretendido — e por isso
+        // "logout global" e a mitigação de reuso não revogavam nada de fato.
+        const conditions = [eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)];
+
+        if (exceptHashedToken) {
+            conditions.push(not(eq(refreshTokens.hashedToken, exceptHashedToken)));
         }
 
         await executor
             .update(refreshTokens)
             .set({ revokedAt: new Date() })
-            .where(and(eq(refreshTokens.userId, userId), ...conditions));
+            .where(and(...conditions));
     }
 
-    // 👇 ADICIONE ESTE MÉTODO NA CLASSE CONCRETA
     async transaction<T>(fn: (db: TransactionClient) => Promise<T>): Promise<T> {
         return await this.db.transaction(fn);
     }

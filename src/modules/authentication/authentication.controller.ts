@@ -1,5 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
+import { logger } from '@/app/utils/logger';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from './authentication.services';
@@ -36,10 +37,10 @@ export class AuthenticateController {
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { token, refreshToken: newRefreshToken, refreshTokenExpiresAt } = await this.authenticateService.refresh(refreshToken, ipAddress, userAgentString);
-        setRefreshTokenCookie(res, newRefreshToken, refreshTokenExpiresAt);
+        const { accessToken, newRawRefreshToken: newRefreshToken, expiresAt } = await this.authenticateService.refresh(refreshToken, ipAddress, userAgentString);
+        setRefreshTokenCookie(res, newRefreshToken, expiresAt);
 
-        return res.status(200).json({ token });
+        return res.status(200).json({ accessToken });
     };
 
     logout = async (req: Request, res: Response): Promise<Response> => {
@@ -47,8 +48,10 @@ export class AuthenticateController {
 
         try {
             await this.authenticateService.revokeByRawToken(refreshToken);
-        } catch (_error) {
-            /* empty */
+        } catch (error) {
+            // Não travamos o logout do usuário por isso, mas registramos —
+            // foi justamente um erro silencioso desse tipo que escondeu o bug crítico anterior.
+            logger.warn({ err: error }, 'Falha ao revogar refresh token durante logout');
         }
 
         res.clearCookie('refreshToken', { path: '/api/auth' });

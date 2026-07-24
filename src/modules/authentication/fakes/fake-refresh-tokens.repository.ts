@@ -74,10 +74,10 @@ export class InMemoryRefreshTokenRepository implements IFakeRefreshTokenReposito
         }
     }
 
-    async revokeAllTokensByUser(userId: string, exceptTokenId?: string, _db?: TransactionClient): Promise<void> {
+    async revokeAllTokensByUser(userId: string, exceptHashedToken?: string, _db?: TransactionClient): Promise<void> {
         this.items.forEach((item) => {
             if (item.userId === userId) {
-                const isExceptional = exceptTokenId && item.hashedToken === exceptTokenId;
+                const isExceptional = exceptHashedToken && item.hashedToken === exceptHashedToken;
 
                 if (!isExceptional && !item.revokedAt) {
                     item.revokedAt = new Date();
