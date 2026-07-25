@@ -20,6 +20,7 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(16, 'O JWT_SECRET deve ter no mínimo 16 caracteres para ser seguro'),
     ACCESS_TOKEN_EXPIRES_AT: z.string().default('15m'),
     REFRESH_TOKEN_EXPIRES_AT: z.coerce.number().default(7),
+    RESET_PASSWORD_TOKEN_EXPIRES_AT: z.string().default('30m'),
 
     // Redis
     REDIS_HOST: z.string().default('localhost'),

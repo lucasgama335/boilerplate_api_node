@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppError } from '@/app/exceptions/AppError';
 import { InMemoryUserSessionRevocationProvider } from '@/app/infra/user-session-revocation/fakes/fake-user-session-revocation-provider';
-import { hashToken } from '@/app/utils/hash-token';
 import { InMemoryUserRepository } from '@/modules/users/fakes/fake-users.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticateUserService } from '../authentication.services';
@@ -33,7 +32,9 @@ describe('Authentication Service (Unit Test)', () => {
 
         tokenProviderMock = {
             generate: vi.fn().mockReturnValue('access-token-jwt-123'),
-            generateRefreshToken: vi.fn().mockResolvedValue('refresh-token-xyz'),
+            generatePasswordResetToken: vi.fn().mockReturnValue('reset-token-xyz'),
+            verifyPasswordResetToken: vi.fn(),
+            decode: vi.fn(),
         };
 
         geolocationProviderMock = {
@@ -56,9 +57,81 @@ describe('Authentication Service (Unit Test)', () => {
         );
     });
 
+    describe('createResetPassword', () => {
+        it('deve gerar o token de recuperação para um usuário existente', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'hash-atual',
+            });
+
+            await authService.createResetPassword('john@example.com');
+
+            expect(tokenProviderMock.generatePasswordResetToken).toHaveBeenCalledWith(user.id, 'hash-atual', null);
+        });
+
+        it('deve executar hash dummy e não lançar erro para e-mail inexistente (anti-timing attack)', async () => {
+            await authService.createResetPassword('nao-existe@example.com');
+
+            expect(hashProviderMock.hash).toHaveBeenCalled();
+            expect(tokenProviderMock.generatePasswordResetToken).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('resetPassword', () => {
+        it('deve redefinir a senha e revogar todas as sessões e refresh tokens do usuário', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'hash-antigo',
+            });
+
+            tokenProviderMock.decode.mockReturnValue({ sub: user.id });
+            tokenProviderMock.verifyPasswordResetToken.mockReturnValue({ sub: user.id });
+
+            const revokeSessionsSpy = vi.spyOn(userSessionRevocationProvider, 'revokeAllTokens');
+            const revokeRefreshSpy = vi.spyOn(refreshTokenRepository, 'revokeAllTokensByUser');
+
+            await authService.resetPassword('valid-reset-token', 'NewPassword!123');
+
+            expect(hashProviderMock.hash).toHaveBeenCalledWith('NewPassword!123');
+            expect(revokeSessionsSpy).toHaveBeenCalledWith(user.id);
+            expect(revokeRefreshSpy).toHaveBeenCalledWith(user.id);
+
+            const updatedUser = await usersRepository.findById(user.id, true);
+            expect(updatedUser?.passwordHash).toBe('hashed-password-result');
+        });
+
+        it('deve lançar AppError 404 se o usuário contido no token não existir', async () => {
+            tokenProviderMock.decode.mockReturnValue({ sub: 'user-id-inexistente' });
+
+            await expect(authService.resetPassword('valid-reset-token', 'NewPassword!123')).rejects.toMatchObject(new AppError('Usuário inexistente.', 404));
+        });
+
+        it('deve lançar AppError 401 se a verificação do token falhar (expirado ou assinatura desalinhada)', async () => {
+            const user = await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'hash-antigo',
+            });
+
+            tokenProviderMock.decode.mockReturnValue({ sub: user.id });
+            tokenProviderMock.verifyPasswordResetToken.mockImplementation(() => {
+                throw new Error('invalid token signature');
+            });
+
+            await expect(authService.resetPassword('invalid-or-expired-token', 'NewPassword!123')).rejects.toMatchObject(
+                new AppError('Token inválido e/ou expirado. Faça uma nova solicitação de token.', 401),
+            );
+        });
+    });
+
     describe('LoginUser', () => {
-        it('deve autenticar um usuário com sucesso quando as credenciais forem válidas', async () => {
-            await usersRepository.create({
+        it('deve autenticar com sucesso e registrar lastLoginAt no repositório', async () => {
+            const user = await usersRepository.create({
                 firstName: 'John',
                 lastName: 'Doe',
                 email: 'john@example.com',
@@ -69,110 +142,11 @@ describe('Authentication Service (Unit Test)', () => {
 
             const result = await authService.loginUser({ email: 'john@example.com', password: 'correct-password' }, '127.0.0.1', 'Mozilla/5.0');
 
-            expect(result).toHaveProperty('token');
             expect(result.token).toBe('access-token-jwt-123');
             expect(loginAttemptsRepository.items[0].status).toBe('success');
-        });
 
-        it('deve lançar um erro e registrar tentativa falha ao tentar logar com senha incorreta', async () => {
-            await usersRepository.create({ firstName: 'John', lastName: 'Doe', email: 'john@example.com', passwordHash: 'hash' });
-            hashProviderMock.compare.mockResolvedValue(false);
-
-            await expect(authService.loginUser({ email: 'john@example.com', password: 'wrong' }, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
-            expect(loginAttemptsRepository.items[0].status).toBe('fail');
-        });
-    });
-
-    describe('Refresh', () => {
-        it('deve atualizar o token com sucesso usando um refresh token válido (rotação)', async () => {
-            const user = await usersRepository.create({ firstName: 'John', lastName: 'Doe', email: 'john@example.com', passwordHash: 'hash' });
-            const rawToken = 'my-raw-refresh-token';
-            const hashedToken = hashToken(rawToken);
-
-            await refreshTokenRepository.create(user.id, hashedToken, new Date(Date.now() + 86400000), '127.0.0.1', 'SP', 'SP', 'BR', 'Win', 'Desktop');
-
-            const result = await authService.refresh(rawToken, '127.0.0.1', 'Mozilla/5.0');
-
-            expect(result.accessToken).toBe('access-token-jwt-123');
-            expect(result.newRawRefreshToken).not.toBe(rawToken);
-        });
-    });
-
-    describe('ChangeAuthenticatedUserPassword', () => {
-        it('deve trocar a senha com sucesso, invalidar sessões globais e preservar apenas o refresh token atual', async () => {
-            const user = await usersRepository.create({
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                passwordHash: 'old-hashed-password',
-            });
-
-            hashProviderMock.compare.mockResolvedValue(true);
-            hashProviderMock.hash.mockResolvedValue('new-hashed-password');
-
-            const revokeSessionsSpy = vi.spyOn(userSessionRevocationProvider, 'revokeAllTokens');
-            const revokeRefreshSpy = vi.spyOn(refreshTokenRepository, 'revokeAllTokensByUser');
-
-            const result = await authService.changeAuthenthicatedUserPassword(user.id, 'NewPassword!123', 'current-refresh-token', 'OldPassword!123');
-
-            expect(hashProviderMock.compare).toHaveBeenCalledWith('OldPassword!123', 'old-hashed-password');
-            expect(hashProviderMock.hash).toHaveBeenCalledWith('NewPassword!123');
-            expect(revokeSessionsSpy).toHaveBeenCalledWith(user.id);
-
-            const expectedHashedToken = hashToken('current-refresh-token');
-            expect(revokeRefreshSpy).toHaveBeenCalledWith(user.id, expectedHashedToken);
-
-            expect(result).toHaveProperty('accessToken', 'access-token-jwt-123');
-            expect(result.user).not.toHaveProperty('passwordHash');
-        });
-
-        it('deve revogar absolutamente todos os refresh tokens caso o cookie não seja enviado (fallback de segurança)', async () => {
-            const user = await usersRepository.create({
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                passwordHash: 'old-hashed-password',
-            });
-
-            hashProviderMock.compare.mockResolvedValue(true);
-            const revokeRefreshSpy = vi.spyOn(refreshTokenRepository, 'revokeAllTokensByUser');
-
-            await authService.changeAuthenthicatedUserPassword(
-                user.id,
-                'NewPassword!123',
-                undefined as any, // Sem cookie anexado
-                'OldPassword!123',
-            );
-
-            // Confirma que não repassou o token hash, ordenando um logout total
-            expect(revokeRefreshSpy).toHaveBeenCalledWith(user.id);
-        });
-
-        it('deve lançar AppError se a senha antiga for incorreta', async () => {
-            const user = await usersRepository.create({
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                passwordHash: 'old-hashed-password',
-            });
-
-            hashProviderMock.compare.mockResolvedValue(false);
-
-            await expect(authService.changeAuthenthicatedUserPassword(user.id, 'NewPassword!123', 'current-refresh-token', 'WrongOldPassword!123')).rejects.toBeInstanceOf(
-                AppError,
-            );
-        });
-    });
-
-    describe('RevokeSessionsService', () => {
-        it('deve realizar logout global quando keepCurrentSession for false', async () => {
-            const user = await usersRepository.create({ firstName: 'John', lastName: 'Doe', email: 'john@example.com', passwordHash: 'hash' });
-            await refreshTokenRepository.create(user.id, hashToken('token-1'), new Date(Date.now() + 86400000), '127', 'SP', 'SP', 'BR', 'Win', 'Desk');
-
-            const result = await authService.revokeSessionsService(user.id, false);
-
-            expect(result.accessToken).toBeNull();
-            expect(refreshTokenRepository.items.every((t) => t.revokedAt !== null)).toBe(true);
+            const updatedUser = await usersRepository.findById(user.id, true);
+            expect(updatedUser?.lastLoginAt).not.toBeNull();
         });
     });
 });

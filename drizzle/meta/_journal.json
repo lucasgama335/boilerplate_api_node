@@ -71,6 +71,13 @@
       "when": 1784924806242,
       "tag": "0009_real_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784943537922,
+      "tag": "0010_black_senator_kelly",
+      "breakpoints": true
     }
   ]
 }

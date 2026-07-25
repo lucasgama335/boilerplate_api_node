@@ -25,7 +25,15 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
         });
     }
 
-    // 3. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
+    // 3. ERROS DE SYNTAX
+    if (err instanceof SyntaxError && 'body' in err) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'O JSON enviado possui uma sintaxe inválida. Verifique vírgulas sobrantes ou aspas.',
+        });
+    }
+
+    // 4. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
     // Nunca repassamos req.body cru: em /auth/register e /auth/login ele contém senha
     // em texto claro, e isso não pode ir pro Sentry nem pro disco.
     const safeBody = sanitizeBody(req.body);

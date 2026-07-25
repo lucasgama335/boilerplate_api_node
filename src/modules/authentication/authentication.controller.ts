@@ -50,6 +50,22 @@ export class AuthenticateController {
         return res.status(204).send();
     };
 
+    forgotPassword = async (req: Request, res: Response): Promise<Response> => {
+        const { email } = req.body;
+
+        await this.authenticateService.createResetPassword(email);
+
+        return res.status(200).send();
+    };
+
+    resetPassword = async (req: Request, res: Response): Promise<Response> => {
+        const { resetPasswordToken, password } = req.body;
+
+        await this.authenticateService.resetPassword(resetPasswordToken, password);
+
+        return res.status(200).json({ message: 'Operação realizada com sucesso.' });
+    };
+
     changeAuthenthicatedUserPassword = async (req: Request, res: Response): Promise<Response> => {
         const userId = req.user.id;
         const refreshToken = req.cookies?.refreshToken;

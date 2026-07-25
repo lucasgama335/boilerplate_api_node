@@ -1,8 +1,6 @@
 import { CreateUser, SafeUser, User } from '../users.types';
 
 export interface IFakeUserRepository {
-    // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
-    // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
     findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
     findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
     findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
@@ -16,8 +14,8 @@ export interface IFakeUserRepository {
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 
-    // 👇 ADICIONADO: Método para suportar a troca de senhas nos testes
     updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
+    updateLastLogin(userId: string, date: Date): Promise<void>; // 👈 Método adicionado à interface
 }
 
 export type CreateFakeUserData = CreateUser & {
@@ -70,6 +68,7 @@ export class InMemoryUserRepository implements IFakeUserRepository {
             isTwoFactorEnabled: false,
             tokensRevokedAt: null,
             passwordHash: data.passwordHash,
+            lastLoginAt: null, // 👈 Inicializado como null
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -97,7 +96,6 @@ export class InMemoryUserRepository implements IFakeUserRepository {
         }
     }
 
-    // 👇 ADICIONADO: Simulação da atualização de senha isolada no array
     async updatePassword(userId: string, newPassword: string): Promise<SafeUser> {
         const userIndex = this.items.findIndex((item) => item.id === userId);
         if (userIndex === -1) {
@@ -109,5 +107,14 @@ export class InMemoryUserRepository implements IFakeUserRepository {
 
         const { passwordHash: _, ...userWithoutPassword } = this.items[userIndex];
         return userWithoutPassword as SafeUser;
+    }
+
+    // 👈 Implementação da atualização de lastLoginAt
+    async updateLastLogin(userId: string, date: Date): Promise<void> {
+        const userIndex = this.items.findIndex((item) => item.id === userId);
+        if (userIndex >= 0) {
+            this.items[userIndex].lastLoginAt = date;
+            this.items[userIndex].updatedAt = new Date();
+        }
     }
 }

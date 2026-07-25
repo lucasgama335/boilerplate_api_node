@@ -54,6 +54,7 @@ export class AuthenticateUserService {
 
         const { passwordHash: _, ...userWithoutPassword } = user;
 
+        await this.userRepository.updateLastLogin(user.id, new Date());
         await this.loginAttemptRepository.generateAttempt('success', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user.id);
 
         return {
@@ -132,6 +133,49 @@ export class AuthenticateUserService {
         });
 
         return { accessToken, newRawRefreshToken, expiresAt };
+    }
+
+    async createResetPassword(email: string): Promise<void> {
+        const user = await this.userRepository.findByEmail(email, true);
+        if (!user) {
+            // 🛡️ Mitigação de Timing Attack:
+            // Se o e-mail não existe, o fluxo passaria rápido demais (apenas o SELECT no banco).
+            // Executamos um hash dummy para nivelar o tempo de processamento com o cenário em que o usuário existe,
+            // impedindo que um atacante descubra e-mails cadastrados medindo a latência da resposta.
+            const DUMMY_HASH = '$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wITvZH7c';
+            await this.hashProvider.hash(DUMMY_HASH);
+            return;
+        }
+
+        const { id, passwordHash, lastLoginAt } = user;
+
+        const resetPasswordToken = this.tokenProvider.generatePasswordResetToken(id, passwordHash, lastLoginAt);
+        if (env.NODE_ENV === 'development') {
+            console.log(`🛡️ [FORGET PASSWORD - TOKEN]: ${resetPasswordToken}`);
+        }
+        // TODO: Chamar futuro Provedor de E-mail (ex: emailProvider.send(...))
+        // Exemplo: await this.emailProvider.sendPasswordResetEmail(email, resetPasswordToken);
+    }
+
+    async resetPassword(resetPasswordToken: string, password: string): Promise<void> {
+        const { sub: userId } = this.tokenProvider.decode(resetPasswordToken);
+        const user = await this.userRepository.findById(userId, true);
+        if (!user) {
+            throw new AppError('Usuário inexistente.', 404);
+        }
+
+        try {
+            this.tokenProvider.verifyPasswordResetToken(resetPasswordToken, user.passwordHash, user.lastLoginAt);
+        } catch {
+            throw new AppError('Token inválido e/ou expirado. Faça uma nova solicitação de token.', 401);
+        }
+
+        const hashedPassword = await this.hashProvider.hash(password);
+        await this.userRepository.updatePassword(userId, hashedPassword);
+
+        // 🛡️ Revoke all access tokens and refresh tokens from user
+        await this.userSessionRevocationProvider.revokeAllTokens(userId);
+        await this.refreshTokenRepository.revokeAllTokensByUser(userId);
     }
 
     async changeAuthenthicatedUserPassword(

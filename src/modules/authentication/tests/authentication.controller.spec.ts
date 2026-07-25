@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
 import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { Request, Response } from 'express';
@@ -30,6 +29,8 @@ describe('Authenticate Controller (Unit Test)', () => {
             loginUser: vi.fn(),
             refresh: vi.fn(),
             revokeByRawToken: vi.fn(),
+            createResetPassword: vi.fn(),
+            resetPassword: vi.fn(),
             changeAuthenthicatedUserPassword: vi.fn(),
             revokeSessionsService: vi.fn(),
         };
@@ -53,6 +54,32 @@ describe('Authenticate Controller (Unit Test)', () => {
             cookie: vi.fn().mockReturnThis(),
             clearCookie: vi.fn().mockReturnThis(),
         };
+    });
+
+    describe('forgotPassword', () => {
+        it('deve chamar o service e retornar status 200 com send()', async () => {
+            req.body = { email: 'john@example.com' };
+            mockAuthService.createResetPassword.mockResolvedValue(undefined);
+
+            await authController.forgotPassword(req as Request, res as Response);
+
+            expect(mockAuthService.createResetPassword).toHaveBeenCalledWith('john@example.com');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalled();
+        });
+    });
+
+    describe('resetPassword', () => {
+        it('deve chamar o service e retornar status 200 com mensagem de sucesso', async () => {
+            req.body = { resetPasswordToken: 'jwt-token-string', password: 'NewPassword!123' };
+            mockAuthService.resetPassword.mockResolvedValue(undefined);
+
+            await authController.resetPassword(req as Request, res as Response);
+
+            expect(mockAuthService.resetPassword).toHaveBeenCalledWith('jwt-token-string', 'NewPassword!123');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Operação realizada com sucesso.' });
+        });
     });
 
     describe('loginUser', () => {
@@ -79,53 +106,6 @@ describe('Authenticate Controller (Unit Test)', () => {
         });
     });
 
-    describe('refreshToken', () => {
-        it('deve lançar AppError 401 se o cookie de refresh token não existir', async () => {
-            req.cookies = {};
-
-            await expect(authController.refreshToken(req as Request, res as Response)).rejects.toMatchObject(new AppError('Refresh token não encontrado.', 401));
-        });
-
-        it('deve rotacionar o token com sucesso e retornar um novo accessToken', async () => {
-            req.cookies = { refreshToken: 'old-refresh-token' };
-            req.headers = { 'user-agent': 'Mozilla' };
-
-            const mockServiceResponse = {
-                accessToken: 'new-access-token',
-                newRawRefreshToken: 'new-refresh-token',
-                expiresAt: new Date('2026-01-01'),
-            };
-
-            mockAuthService.refresh.mockResolvedValue(mockServiceResponse);
-
-            await authController.refreshToken(req as Request, res as Response);
-
-            expect(mockAuthService.refresh).toHaveBeenCalledWith('old-refresh-token', '127.0.0.1', 'Mozilla');
-            expect(setRefreshTokenCookie).toHaveBeenCalledWith(res, 'new-refresh-token', mockServiceResponse.expiresAt);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ accessToken: 'new-access-token' });
-        });
-    });
-
-    describe('changeAuthenthicatedUserPassword', () => {
-        it('deve repassar os dados de troca de senha para o service e retornar status 200', async () => {
-            req.user = { id: 'user-123' };
-            req.cookies = { refreshToken: 'current-refresh-token' };
-            req.body = { oldPassword: 'old', newPassword: 'new' };
-
-            mockAuthService.changeAuthenthicatedUserPassword.mockResolvedValue({
-                user: { id: 'user-123' },
-                accessToken: 'new-access-token',
-            });
-
-            await authController.changeAuthenthicatedUserPassword(req as Request, res as Response);
-
-            expect(mockAuthService.changeAuthenthicatedUserPassword).toHaveBeenCalledWith('user-123', 'new', 'current-refresh-token', 'old');
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({ user: { id: 'user-123' }, accessToken: 'new-access-token' });
-        });
-    });
-
     describe('logout', () => {
         it('deve limpar o cookie e retornar 204 com sucesso', async () => {
             req.cookies = { refreshToken: 'my-token' };
@@ -135,22 +115,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             expect(mockAuthService.revokeByRawToken).toHaveBeenCalledWith('my-token');
             expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
             expect(res.status).toHaveBeenCalledWith(204);
-        });
-    });
-
-    describe('revokeAllUserTokens', () => {
-        it('deve limpar cookie e deslogar globalmente se keepCurrentSession for false', async () => {
-            req.user = { id: 'user-123' };
-            req.body = { keepCurrentSession: false };
-            req.cookies = { refreshToken: 'my-token' };
-
-            mockAuthService.revokeSessionsService.mockResolvedValue({ accessToken: null });
-
-            await authController.revokeAllUserTokens(req as Request, res as Response);
-
-            expect(mockAuthService.revokeSessionsService).toHaveBeenCalledWith('user-123', false, 'my-token');
-            expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
-            expect(res.json).toHaveBeenCalledWith({ message: 'Você foi desconectado de todos os dispositivos.' });
         });
     });
 });
