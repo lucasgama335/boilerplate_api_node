@@ -24,6 +24,7 @@ const envSchema = z.object({
     ACCESS_TOKEN_EXPIRES_AT: z.string().default('15m'),
     REFRESH_TOKEN_EXPIRES_AT: z.coerce.number().default(7),
     RESET_PASSWORD_TOKEN_EXPIRES_AT: z.string().default('30m'),
+    CONFIRM_EMAIL_TOKEN_EXPIRES_AT: z.string().default('30m'),
 
     // Redis
     REDIS_HOST: z.string().default('localhost'),

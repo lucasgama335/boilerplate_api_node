@@ -15,7 +15,8 @@ export interface IFakeUserRepository {
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 
     updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
-    updateLastLogin(userId: string, date: Date): Promise<void>; // 👈 Método adicionado à interface
+    updateLastLogin(userId: string, date: Date): Promise<void>;
+    confirmEmail(userId: string): Promise<void>;
 }
 
 export type CreateFakeUserData = CreateUser & {
@@ -112,9 +113,20 @@ export class InMemoryUserRepository implements IFakeUserRepository {
     // 👈 Implementação da atualização de lastLoginAt
     async updateLastLogin(userId: string, date: Date): Promise<void> {
         const userIndex = this.items.findIndex((item) => item.id === userId);
-        if (userIndex >= 0) {
-            this.items[userIndex].lastLoginAt = date;
-            this.items[userIndex].updatedAt = new Date();
+        if (userIndex === -1) {
+            throw new Error('Usuário não encontrado');
         }
+
+        this.items[userIndex].lastLoginAt = date;
+        this.items[userIndex].updatedAt = new Date();
+    }
+
+    async confirmEmail(userId: string): Promise<void> {
+        const userIndex = this.items.findIndex((item) => item.id === userId);
+        if (userIndex === -1) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        this.items[userIndex].isEmailConfirmed = true;
     }
 }

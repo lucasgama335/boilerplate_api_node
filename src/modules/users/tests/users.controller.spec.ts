@@ -11,28 +11,25 @@ describe('Users Controller (Unit Test)', () => {
     let res: Partial<Response>;
 
     beforeEach(() => {
-        // Mockamos os métodos do serviço de usuários
         mockUserService = {
             registerUser: vi.fn(),
             getProfile: vi.fn(),
+            confirmEmail: vi.fn(),
+            resendConfirmEmail: vi.fn(),
         };
 
-        // Injetamos o serviço falso no controller
         usersController = new UsersController(mockUserService);
-
-        // Limpamos os mocks
         vi.clearAllMocks();
 
-        // Simulamos a requisição
         req = {
             body: {},
             user: undefined,
         };
 
-        // Simulamos a resposta (com encadeamento: res.status().json())
         res = {
             status: vi.fn().mockReturnThis(),
             json: vi.fn().mockReturnThis(),
+            send: vi.fn().mockReturnThis(),
         };
     });
 
@@ -54,12 +51,10 @@ describe('Users Controller (Unit Test)', () => {
                 email: 'jane@example.com',
             };
 
-            // Simulamos o retorno de sucesso do serviço
             mockUserService.registerUser.mockResolvedValue(expectedUserReturn);
 
             await usersController.registerUser(req as Request, res as Response);
 
-            // Validações
             expect(mockUserService.registerUser).toHaveBeenCalledWith(userData);
             expect(res.status).toHaveBeenCalledWith(201);
             expect(res.json).toHaveBeenCalledWith(expectedUserReturn);
@@ -68,7 +63,6 @@ describe('Users Controller (Unit Test)', () => {
 
     describe('showProfile', () => {
         it('deve extrair o ID do usuário do token (req.user), buscar o perfil e retornar 200', async () => {
-            // Simulamos que o middleware de autenticação já injetou o usuário
             req.user = { id: 'uuid-456' };
 
             const expectedProfile = {
@@ -78,15 +72,39 @@ describe('Users Controller (Unit Test)', () => {
                 email: 'john@example.com',
             };
 
-            // Simulamos a busca bem-sucedida do perfil
             mockUserService.getProfile.mockResolvedValue(expectedProfile);
 
             await usersController.showProfile(req as Request, res as Response);
 
-            // Validações
             expect(mockUserService.getProfile).toHaveBeenCalledWith('uuid-456');
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith(expectedProfile);
+        });
+    });
+
+    describe('confirmEmail', () => {
+        it('deve chamar o service com o token e retornar status 200', async () => {
+            req.body = { token: 'valid-jwt-token' };
+            mockUserService.confirmEmail.mockResolvedValue(undefined);
+
+            await usersController.confirmEmail(req as Request, res as Response);
+
+            expect(mockUserService.confirmEmail).toHaveBeenCalledWith('valid-jwt-token');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'E-mail confirmado com sucesso.' });
+        });
+    });
+
+    describe('resendConfirmationEmail', () => {
+        it('deve chamar o service com o e-mail e retornar status 200', async () => {
+            req.body = { email: 'john@example.com' };
+            mockUserService.resendConfirmEmail.mockResolvedValue(undefined);
+
+            await usersController.resendConfirmationEmail(req as Request, res as Response);
+
+            expect(mockUserService.resendConfirmEmail).toHaveBeenCalledWith('john@example.com');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Um novo e-mail de confirmação foi enviado para o endereço informado.' });
         });
     });
 });

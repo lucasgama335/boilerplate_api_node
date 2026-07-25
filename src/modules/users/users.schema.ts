@@ -30,4 +30,13 @@ export const registerUserSchema = z
         path: ['passwordConfirmation'],
     });
 
+export const confirmEmailSchema = z.object({
+    token: z.string().regex(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/, 'Token com formato inválido'),
+});
+
+export const resendConfirmationEmailSchema = z.object({
+    email: z.string().trim().toLowerCase().email('Formato de e-mail inválido'),
+});
+
 export type RegisterUserDTO = z.infer<typeof registerUserSchema>;
+export type ConfirmEmailDTO = z.infer<typeof confirmEmailSchema>;

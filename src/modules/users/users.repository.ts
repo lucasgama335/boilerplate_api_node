@@ -18,8 +18,10 @@ export interface IUserRepository {
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
+
     updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
     updateLastLogin(userId: string, date: Date): Promise<void>;
+    confirmEmail(userId: string): Promise<void>;
 }
 
 export class DrizzleUserRepository implements IUserRepository {
@@ -87,5 +89,9 @@ export class DrizzleUserRepository implements IUserRepository {
 
     async updateLastLogin(userId: string, date: Date): Promise<void> {
         await this.db.update(users).set({ lastLoginAt: date }).where(eq(users.id, userId));
+    }
+
+    async confirmEmail(userId: string): Promise<void> {
+        await this.db.update(users).set({ isEmailConfirmed: true, updatedAt: new Date() }).where(eq(users.id, userId));
     }
 }

@@ -19,4 +19,20 @@ export class UsersController {
 
         return res.status(200).json(user);
     };
+
+    confirmEmail = async (req: Request, res: Response): Promise<Response> => {
+        const { token } = req.body;
+
+        await this.userService.confirmEmail(token);
+
+        return res.status(200).json({ message: 'E-mail confirmado com sucesso.' });
+    };
+
+    resendConfirmationEmail = async (req: Request, res: Response): Promise<Response> => {
+        const { email } = req.body;
+
+        await this.userService.resendConfirmEmail(email);
+
+        return res.status(200).json({ message: 'Um novo e-mail de confirmação foi enviado para o endereço informado.' });
+    };
 }

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { registerUserSchema } from '../users.schema';
+import { confirmEmailSchema, registerUserSchema, resendConfirmationEmailSchema } from '../users.schema';
 
 describe('User Schemas (Zod)', () => {
     describe('registerUserSchema', () => {
         it('deve validar com sucesso e transformar/formatar os dados de entrada corretamente', () => {
             const validData = {
-                firstName: '  alice  ', // Com espaços extras e minúsculo
+                firstName: '  alice  ',
                 lastName: 'smith',
-                email: ' ALICE.SMITH@EXAMPLE.COM ', // Com espaços e maiúsculo
+                email: ' ALICE.SMITH@EXAMPLE.COM ',
                 password: 'StrongPassword!123',
                 passwordConfirmation: 'StrongPassword!123',
             };
@@ -16,7 +16,6 @@ describe('User Schemas (Zod)', () => {
 
             expect(result.success).toBe(true);
             if (result.success) {
-                // Verifica se aplicou as transformações do Zod (Trims, Lowercase e Capitalize)
                 expect(result.data.firstName).toBe('Alice');
                 expect(result.data.lastName).toBe('Smith');
                 expect(result.data.email).toBe('alice.smith@example.com');
@@ -25,8 +24,8 @@ describe('User Schemas (Zod)', () => {
 
         it('deve falhar se o nome ou sobrenome tiver menos de 2 caracteres', () => {
             const invalidData = {
-                firstName: 'A', // Inválido (< 2)
-                lastName: 'B', // Inválido (< 2)
+                firstName: 'A',
+                lastName: 'B',
                 email: 'alice@example.com',
                 password: 'StrongPassword!123',
                 passwordConfirmation: 'StrongPassword!123',
@@ -63,25 +62,20 @@ describe('User Schemas (Zod)', () => {
                 lastName: 'Smith',
                 email: 'alice@example.com',
                 password: 'StrongPassword!123',
-                passwordConfirmation: 'DifferentPassword!123', // Divergente
+                passwordConfirmation: 'DifferentPassword!123',
             };
 
             const result = registerUserSchema.safeParse(data);
 
             expect(result.success).toBe(false);
             if (!result.success) {
-                // O refine aponta o erro diretamente para o campo de confirmação
                 expect(result.error.issues[0].path).toContain('passwordConfirmation');
                 expect(result.error.issues[0].message).toBe('As senhas não coincidem');
             }
         });
 
-        it('deve rejeitar senhas fracas (curtas, sem letra maiúscula ou sem caractere especial)', () => {
-            const weakPasswords = [
-                'short!A', // Menos de 8 caracteres
-                'alllowercase!123', // Sem letra maiúscula
-                'NoSpecialChar123', // Sem caractere especial
-            ];
+        it('deve rejeitar senhas fracas', () => {
+            const weakPasswords = ['short!A', 'alllowercase!123', 'NoSpecialChar123'];
 
             weakPasswords.forEach((password) => {
                 const result = registerUserSchema.safeParse({
@@ -97,6 +91,39 @@ describe('User Schemas (Zod)', () => {
                     expect(result.error.issues[0].path).toContain('password');
                 }
             });
+        });
+    });
+
+    describe('confirmEmailSchema', () => {
+        it('deve validar com sucesso um token no formato JWT', () => {
+            const result = confirmEmailSchema.safeParse({ token: 'header.payload.signature' });
+            expect(result.success).toBe(true);
+        });
+
+        it('deve falhar se o token não tiver o formato JWT', () => {
+            const result = confirmEmailSchema.safeParse({ token: 'token_invalido_sem_pontos' });
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error.issues[0].message).toBe('Token com formato inválido');
+            }
+        });
+    });
+
+    describe('resendConfirmationEmailSchema', () => {
+        it('deve validar e formatar um e-mail válido', () => {
+            const result = resendConfirmationEmailSchema.safeParse({ email: ' USER@EXAMPLE.COM ' });
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data.email).toBe('user@example.com');
+            }
+        });
+
+        it('deve falhar se o e-mail for inválido', () => {
+            const result = resendConfirmationEmailSchema.safeParse({ email: 'invalido' });
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error.issues[0].message).toBe('Formato de e-mail inválido');
+            }
         });
     });
 });
