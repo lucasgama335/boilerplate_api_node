@@ -1,9 +1,7 @@
-import { databaseInstance } from '@/database';
-import { ProfileController } from './users.controller';
-import { DrizzleUserRepository } from './users.repository';
+import { hashProvider } from '@/app/composition-root';
+import { userRepository } from '@/database/repositories';
+import { UsersController } from './users.controller';
 import { UserService } from './users.services';
 
-export const userRepository = new DrizzleUserRepository(databaseInstance);
-
-const userService = new UserService(userRepository);
-export const profileController = new ProfileController(userService);
+const userService = new UserService(userRepository, hashProvider);
+export const usersController = new UsersController(userService);

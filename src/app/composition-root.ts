@@ -5,7 +5,7 @@ import { HashProvider } from '@/app/infra/hashing/HashProvider';
 import { redisClient } from '@/app/infra/redis/redis-client';
 import { TokenProvider } from '@/app/infra/token/TokenProvider';
 import { UserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
-import { userRepository } from '@/modules/users/users.composition';
+import { userRepository } from '@/database/repositories';
 import { UserSessionRevocationProvider } from './infra/user-session-revocation/UserSessionRevocationProvider';
 
 export const hashProvider = new HashProvider();

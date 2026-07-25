@@ -11,22 +11,10 @@ export const refreshTokenSchema = z.object({
     }),
 });
 
-export const registerUserSchema = z
+export const changePasswordUserSchema = z
     .object({
-        firstName: z
-            .string()
-            .trim()
-            .min(2, 'O nome deve ter no mínimo 2 caracteres')
-            .transform((val) => val.charAt(0).toUpperCase() + val.slice(1)),
-        lastName: z
-            .string()
-            .trim()
-            .min(2, 'O sobrenome deve ter no mínimo 2 caracteres')
-            .transform((val) => val.charAt(0).toUpperCase() + val.slice(1)),
-
-        email: z.string().trim().toLowerCase().email('Formato de e-mail inválido'),
-
-        password: z
+        oldPassword: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+        newPassword: z
             .string()
             .min(8, 'A senha deve ter no mínimo 8 caracteres')
             .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula')
@@ -36,12 +24,16 @@ export const registerUserSchema = z
             error: 'O campo de confirmação de senha é obrigatório, mas não foi encontrado',
         }),
     })
-    .refine((data) => data.password === data.passwordConfirmation, {
+    .refine((data) => data.newPassword === data.passwordConfirmation, {
         message: 'As senhas não coincidem',
         path: ['passwordConfirmation'],
+    })
+    .refine((data) => data.oldPassword !== data.newPassword, {
+        message: 'A nova senha não pode ser igual à senha atual',
+        path: ['newPassword'],
     });
 
 // Gerando o tipo TypeScript a partir do Schema
 export type AuthenticateUserDTO = z.infer<typeof authenticateUserSchema>;
-export type RegisterUserDTO = z.infer<typeof registerUserSchema>;
 export type RefreshTokenDTO = z.infer<typeof refreshTokenSchema>;
+export type ChangePasswordUserDTO = z.infer<typeof changePasswordUserSchema>;

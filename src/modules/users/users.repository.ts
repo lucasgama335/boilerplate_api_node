@@ -18,6 +18,7 @@ export interface IUserRepository {
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
+    updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
 }
 
 export class DrizzleUserRepository implements IUserRepository {
@@ -74,5 +75,12 @@ export class DrizzleUserRepository implements IUserRepository {
 
     async setTokensRevokedAt(userId: string, date: Date): Promise<void> {
         await this.db.update(users).set({ tokensRevokedAt: date }).where(eq(users.id, userId));
+    }
+
+    async updatePassword(userId: string, newPassword: string): Promise<SafeUser> {
+        const [result] = await this.db.update(users).set({ passwordHash: newPassword }).where(eq(users.id, userId)).returning();
+        const { passwordHash: _, ...userWithoutPassword } = result;
+
+        return userWithoutPassword as SafeUser;
     }
 }

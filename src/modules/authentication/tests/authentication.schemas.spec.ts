@@ -1,87 +1,61 @@
 import { describe, expect, it } from 'vitest';
-import { authenticateUserSchema, refreshTokenSchema, registerUserSchema } from '../authentication.schemas';
+import { authenticateUserSchema, changePasswordUserSchema, refreshTokenSchema } from '../authentication.schemas';
 
 describe('Authentication Schemas (Zod)', () => {
-    describe('registerUserSchema', () => {
-        it('deve validar com sucesso e transformar/formatar os dados de entrada corretamente', () => {
+    describe('changePasswordUserSchema', () => {
+        it('deve validar com sucesso quando as senhas estão corretas e a nova é diferente da antiga', () => {
             const validData = {
-                firstName: '  john  ', // Com espaços sobrando e minúsculo
-                lastName: 'doe',
-                email: ' JOHN.DOE@EXAMPLE.COM ', // Com espaços e maiúsculo
-                password: 'StrongPassword!123',
-                passwordConfirmation: 'StrongPassword!123',
+                oldPassword: 'OldPassword!123',
+                newPassword: 'NewPassword!123',
+                passwordConfirmation: 'NewPassword!123',
             };
 
-            const result = registerUserSchema.safeParse(validData);
+            const result = changePasswordUserSchema.safeParse(validData);
 
             expect(result.success).toBe(true);
-            if (result.success) {
-                // Verifica as transformações (Trims, Lowercase e Capitalize)
-                expect(result.data.firstName).toBe('John');
-                expect(result.data.lastName).toBe('Doe');
-                expect(result.data.email).toBe('john.doe@example.com');
-            }
         });
 
-        it('deve falhar se o nome ou sobrenome tiver menos de 2 caracteres', () => {
+        it('deve falhar se a nova senha for igual à senha atual', () => {
             const invalidData = {
-                firstName: 'A', // Inválido
-                lastName: 'B', // Inválido
-                email: 'test@example.com',
-                password: 'StrongPassword!123',
-                passwordConfirmation: 'StrongPassword!123',
+                oldPassword: 'SamePassword!123',
+                newPassword: 'SamePassword!123',
+                passwordConfirmation: 'SamePassword!123',
             };
 
-            const result = registerUserSchema.safeParse(invalidData);
+            const result = changePasswordUserSchema.safeParse(invalidData);
 
             expect(result.success).toBe(false);
             if (!result.success) {
-                const errorFields = result.error.issues.map((issue) => issue.path[0]);
-                expect(errorFields).toContain('firstName');
-                expect(errorFields).toContain('lastName');
+                expect(result.error.issues[0].path).toContain('newPassword');
+                expect(result.error.issues[0].message).toBe('A nova senha não pode ser igual à senha atual');
             }
         });
 
-        it('deve falhar se as senhas não coincidirem', () => {
-            const data = {
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'test@example.com',
-                password: 'StrongPassword!123',
-                passwordConfirmation: 'DifferentPassword!123', // Diferente
-            };
-
-            const result = registerUserSchema.safeParse(data);
+        it('deve falhar se a confirmação de senha não bater com a nova senha', () => {
+            const result = changePasswordUserSchema.safeParse({
+                oldPassword: 'OldPassword!123',
+                newPassword: 'NewPassword!123',
+                passwordConfirmation: 'DifferentPassword!123',
+            });
 
             expect(result.success).toBe(false);
             if (!result.success) {
-                // O schema possui um .refine que aponta o erro para o campo passwordConfirmation
                 expect(result.error.issues[0].path).toContain('passwordConfirmation');
                 expect(result.error.issues[0].message).toBe('As senhas não coincidem');
             }
         });
 
-        it('deve rejeitar senhas fracas (sem maiúscula, sem caracter especial ou curtas)', () => {
-            const weakPasswords = [
-                'short!A', // menos de 8 caracteres
-                'alllowercase!123', // sem maiúscula
-                'NoSpecialChar123', // sem especial
-            ];
-
-            weakPasswords.forEach((password) => {
-                const result = registerUserSchema.safeParse({
-                    firstName: 'John',
-                    lastName: 'Doe',
-                    email: 'test@example.com',
-                    password: password,
-                    passwordConfirmation: password,
-                });
-
-                expect(result.success).toBe(false);
-                if (!result.success) {
-                    expect(result.error.issues[0].path).toContain('password');
-                }
+        it('deve rejeitar senhas fracas na nova senha', () => {
+            const result = changePasswordUserSchema.safeParse({
+                oldPassword: 'ValidOldPassword!123',
+                newPassword: 'weakpassword',
+                passwordConfirmation: 'weakpassword',
             });
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error.issues[0].path).toContain('newPassword');
+            }
         });
     });
 

@@ -8,14 +8,6 @@ import { AuthenticateUserService } from './authentication.services';
 export class AuthenticateController {
     constructor(private readonly authenticateService: AuthenticateUserService) {}
 
-    registerUser = async (req: Request, res: Response): Promise<Response> => {
-        const data = req.body;
-
-        const user = await this.authenticateService.registerUser(data);
-
-        return res.status(201).json(user);
-    };
-
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
@@ -56,6 +48,16 @@ export class AuthenticateController {
 
         res.clearCookie('refreshToken', { path: '/api/auth' });
         return res.status(204).send();
+    };
+
+    changeAuthenthicatedUserPassword = async (req: Request, res: Response): Promise<Response> => {
+        const userId = req.user.id;
+        const refreshToken = req.cookies?.refreshToken;
+        const { oldPassword, newPassword } = req.body;
+
+        const user = await this.authenticateService.changeAuthenthicatedUserPassword(userId, newPassword, refreshToken, oldPassword);
+
+        return res.status(200).json(user);
     };
 
     revokeAllUserTokens = async (req: Request, res: Response): Promise<Response> => {

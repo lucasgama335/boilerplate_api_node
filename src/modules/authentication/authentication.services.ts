@@ -9,7 +9,7 @@ import { env } from '@/env';
 import { IUserRepository } from '@/modules/users/users.repository';
 import crypto from 'node:crypto';
 import { SafeUser } from '../users/users.types';
-import { AuthenticateUserDTO, RegisterUserDTO } from './authentication.schemas';
+import { AuthenticateUserDTO } from './authentication.schemas';
 import { ILoginAttemptsRepository } from './login-attempts.repository';
 import { IRefreshTokenRepository } from './refresh-tokens.repository';
 
@@ -134,6 +134,39 @@ export class AuthenticateUserService {
         return { accessToken, newRawRefreshToken, expiresAt };
     }
 
+    async changeAuthenthicatedUserPassword(
+        userId: string,
+        newPassword: string,
+        currentRefreshToken: string,
+        oldPassword: string,
+    ): Promise<{ user: SafeUser; accessToken: string }> {
+        const user = await this.userRepository.findById(userId, true);
+        if (!user) {
+            throw new AppError('E-mail ou senha inválidos.', 401);
+        }
+
+        const matchOldPassword = await this.hashProvider.compare(oldPassword, user.passwordHash);
+        if (!matchOldPassword) {
+            throw new AppError('A senha atual está errada.', 401);
+        }
+
+        const hashedPassword = await this.hashProvider.hash(newPassword);
+        const updatedUser = await this.userRepository.updatePassword(user.id, hashedPassword);
+
+        await this.userSessionRevocationProvider.revokeAllTokens(userId);
+
+        if (currentRefreshToken) {
+            const hashedToken = hashToken(currentRefreshToken);
+            await this.refreshTokenRepository.revokeAllTokensByUser(userId, hashedToken);
+        } else {
+            await this.refreshTokenRepository.revokeAllTokensByUser(userId);
+        }
+
+        const newAccessToken = this.tokenProvider.generate(userId);
+
+        return { user: updatedUser, accessToken: newAccessToken };
+    }
+
     async revokeByRawToken(token: string): Promise<void> {
         const hashedToken = hashToken(token);
         const tokenRecord = await this.refreshTokenRepository.findByTokenHash(hashedToken);
@@ -177,23 +210,5 @@ export class AuthenticateUserService {
         await this.refreshTokenRepository.revokeAllTokensByUser(userId);
 
         return { accessToken: null };
-    }
-
-    async registerUser(data: RegisterUserDTO): Promise<SafeUser> {
-        const userAlreadyExists = await this.userRepository.findByEmail(data.email);
-        if (userAlreadyExists) {
-            throw new AppError('Esse e-mail já está vinculado a uma conta cadastrada no sistema.', 409);
-        }
-
-        // Extraímos o 'password' e agrupamos o resto das propriedades na variável 'userData'
-        const { password: _, ...userData } = data;
-
-        const hashedPassword = await this.hashProvider.hash(data.password);
-
-        const createdUser = await this.userRepository.create({
-            ...userData,
-            passwordHash: hashedPassword,
-        });
-        return createdUser;
     }
 }

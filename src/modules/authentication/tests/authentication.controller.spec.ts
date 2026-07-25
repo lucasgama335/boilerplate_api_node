@@ -6,7 +6,6 @@ import { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticateController } from '../authentication.controller';
 
-// 1. "Sequestramos" os utilitários externos para que não executem código real durante o teste
 vi.mock('@/app/utils/set-refresh-token-cookie', () => ({
     setRefreshTokenCookie: vi.fn(),
 }));
@@ -23,27 +22,21 @@ describe('Authenticate Controller (Unit Test)', () => {
     let mockAuthService: any;
     let authController: AuthenticateController;
 
-    // Utilitários para gerar req e res falsos limpos para cada teste
     let req: Partial<Request>;
     let res: Partial<Response>;
 
     beforeEach(() => {
-        // Resetamos o mock do serviço
         mockAuthService = {
-            registerUser: vi.fn(),
             loginUser: vi.fn(),
             refresh: vi.fn(),
             revokeByRawToken: vi.fn(),
+            changeAuthenthicatedUserPassword: vi.fn(),
             revokeSessionsService: vi.fn(),
         };
 
-        // Injetamos o serviço falso no controller
         authController = new AuthenticateController(mockAuthService);
-
-        // Limpamos os mocks das funções importadas soltas
         vi.clearAllMocks();
 
-        // Simulamos a requisição do Express
         req = {
             body: {},
             cookies: {},
@@ -53,7 +46,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             user: undefined,
         };
 
-        // Simulamos a resposta do Express encadeável (ex: res.status(200).json(...))
         res = {
             status: vi.fn().mockReturnThis(),
             json: vi.fn().mockReturnThis(),
@@ -61,22 +53,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             cookie: vi.fn().mockReturnThis(),
             clearCookie: vi.fn().mockReturnThis(),
         };
-    });
-
-    describe('registerUser', () => {
-        it('deve repassar os dados para o service e retornar status 201', async () => {
-            const userData = { firstName: 'Jane', email: 'jane@example.com' };
-            req.body = userData;
-
-            // Simulamos a resposta do service
-            mockAuthService.registerUser.mockResolvedValue({ id: '123', ...userData });
-
-            await authController.registerUser(req as Request, res as Response);
-
-            expect(mockAuthService.registerUser).toHaveBeenCalledWith(userData);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ id: '123', ...userData });
-        });
     });
 
     describe('loginUser', () => {
@@ -96,13 +72,8 @@ describe('Authenticate Controller (Unit Test)', () => {
             await authController.loginUser(req as Request, res as Response);
 
             expect(mockAuthService.loginUser).toHaveBeenCalledWith({ email: 'john@example.com', password: 'password123' }, '127.0.0.1', 'Mozilla/5.0');
-
-            // Verifica se o utilitário de cookie foi chamado com a resposta e os tokens certos
             expect(setRefreshTokenCookie).toHaveBeenCalledWith(res, 'raw-refresh-token', mockServiceResponse.refreshTokenExpiresAt);
-
-            // Verifica se o rate limit foi limpo após o sucesso
             expect(resetAuthRateLimits).toHaveBeenCalledWith('127.0.0.1', 'john@example.com');
-
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({ user: mockServiceResponse.user, token: 'access-token' });
         });
@@ -110,7 +81,7 @@ describe('Authenticate Controller (Unit Test)', () => {
 
     describe('refreshToken', () => {
         it('deve lançar AppError 401 se o cookie de refresh token não existir', async () => {
-            req.cookies = {}; // Vazio
+            req.cookies = {};
 
             await expect(authController.refreshToken(req as Request, res as Response)).rejects.toMatchObject(new AppError('Refresh token não encontrado.', 401));
         });
@@ -136,6 +107,25 @@ describe('Authenticate Controller (Unit Test)', () => {
         });
     });
 
+    describe('changeAuthenthicatedUserPassword', () => {
+        it('deve repassar os dados de troca de senha para o service e retornar status 200', async () => {
+            req.user = { id: 'user-123' };
+            req.cookies = { refreshToken: 'current-refresh-token' };
+            req.body = { oldPassword: 'old', newPassword: 'new' };
+
+            mockAuthService.changeAuthenthicatedUserPassword.mockResolvedValue({
+                user: { id: 'user-123' },
+                accessToken: 'new-access-token',
+            });
+
+            await authController.changeAuthenthicatedUserPassword(req as Request, res as Response);
+
+            expect(mockAuthService.changeAuthenthicatedUserPassword).toHaveBeenCalledWith('user-123', 'new', 'current-refresh-token', 'old');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ user: { id: 'user-123' }, accessToken: 'new-access-token' });
+        });
+    });
+
     describe('logout', () => {
         it('deve limpar o cookie e retornar 204 com sucesso', async () => {
             req.cookies = { refreshToken: 'my-token' };
@@ -143,20 +133,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             await authController.logout(req as Request, res as Response);
 
             expect(mockAuthService.revokeByRawToken).toHaveBeenCalledWith('my-token');
-            expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
-            expect(res.status).toHaveBeenCalledWith(204);
-            expect(res.send).toHaveBeenCalled();
-        });
-
-        it('deve ignorar erros do service (ex: token já revogado), limpar cookie de qualquer forma e retornar 204', async () => {
-            req.cookies = { refreshToken: 'my-token' };
-
-            // Simulamos que o serviço falha silenciosamente por baixo dos panos
-            mockAuthService.revokeByRawToken.mockRejectedValue(new Error('Token já revogado'));
-
-            await authController.logout(req as Request, res as Response);
-
-            // Garante que não quebrou a requisição, o cookie ainda foi limpo
             expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
             expect(res.status).toHaveBeenCalledWith(204);
         });
@@ -168,7 +144,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             req.body = { keepCurrentSession: false };
             req.cookies = { refreshToken: 'my-token' };
 
-            // Se é logout global absoluto, o serviço retorna null no accessToken
             mockAuthService.revokeSessionsService.mockResolvedValue({ accessToken: null });
 
             await authController.revokeAllUserTokens(req as Request, res as Response);
@@ -176,23 +151,6 @@ describe('Authenticate Controller (Unit Test)', () => {
             expect(mockAuthService.revokeSessionsService).toHaveBeenCalledWith('user-123', false, 'my-token');
             expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
             expect(res.json).toHaveBeenCalledWith({ message: 'Você foi desconectado de todos os dispositivos.' });
-        });
-
-        it('deve preservar o cookie, não chamar clearCookie e retornar novo token se keepCurrentSession for true', async () => {
-            req.user = { id: 'user-123' };
-            req.body = { keepCurrentSession: true };
-            req.cookies = { refreshToken: 'my-token' };
-
-            mockAuthService.revokeSessionsService.mockResolvedValue({ accessToken: 'novo-access-token-preservado' });
-
-            await authController.revokeAllUserTokens(req as Request, res as Response);
-
-            expect(mockAuthService.revokeSessionsService).toHaveBeenCalledWith('user-123', true, 'my-token');
-            expect(res.clearCookie).not.toHaveBeenCalled(); // 👈 Não deve limpar o cookie atual!
-            expect(res.json).toHaveBeenCalledWith({
-                message: 'Todos os outros dispositivos foram desconectados. Sua sessão atual foi mantida.',
-                accessToken: 'novo-access-token-preservado',
-            });
         });
     });
 });

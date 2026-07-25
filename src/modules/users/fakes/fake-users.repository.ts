@@ -15,6 +15,9 @@ export interface IFakeUserRepository {
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
+
+    // 👇 ADICIONADO: Método para suportar a troca de senhas nos testes
+    updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
 }
 
 export type CreateFakeUserData = CreateUser & {
@@ -92,5 +95,19 @@ export class InMemoryUserRepository implements IFakeUserRepository {
             this.items[userIndex].tokensRevokedAt = now;
             this.items[userIndex].updatedAt = new Date();
         }
+    }
+
+    // 👇 ADICIONADO: Simulação da atualização de senha isolada no array
+    async updatePassword(userId: string, newPassword: string): Promise<SafeUser> {
+        const userIndex = this.items.findIndex((item) => item.id === userId);
+        if (userIndex === -1) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        this.items[userIndex].passwordHash = newPassword;
+        this.items[userIndex].updatedAt = new Date();
+
+        const { passwordHash: _, ...userWithoutPassword } = this.items[userIndex];
+        return userWithoutPassword as SafeUser;
     }
 }

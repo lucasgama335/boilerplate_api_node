@@ -1,21 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppError } from '@/app/exceptions/AppError';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InMemoryUserRepository } from '../fakes/fake-users.repository';
 import { UserService } from '../users.services';
 
 describe('User Service (Unit Test)', () => {
     let usersRepository: InMemoryUserRepository;
     let userService: UserService;
+    let hashProviderMock: any;
 
     beforeEach(() => {
-        // Inicializa o repositório em memória e o serviço antes de cada teste
         usersRepository = new InMemoryUserRepository();
-        userService = new UserService(usersRepository);
+
+        hashProviderMock = {
+            hash: vi.fn().mockResolvedValue('hashed-password-result'),
+            compare: vi.fn(),
+        };
+
+        userService = new UserService(usersRepository, hashProviderMock);
     });
 
     describe('getProfile', () => {
         it('deve retornar o perfil de um usuário existente com sucesso (SafeUser)', async () => {
-            // 1. Preparação: Criamos um usuário no banco falso
             const createdUser = await usersRepository.create({
                 firstName: 'Alice',
                 lastName: 'Smith',
@@ -23,24 +29,59 @@ describe('User Service (Unit Test)', () => {
                 passwordHash: 'any-hashed-password',
             });
 
-            // 2. Ação: Buscamos o perfil usando o serviço
             const profile = await userService.getProfile(createdUser.id);
 
-            // 3. Asserção: O perfil deve estar definido e bater com os dados criados
             expect(profile).toBeDefined();
             expect(profile.id).toBe(createdUser.id);
             expect(profile.email).toBe('alice@example.com');
             expect(profile.firstName).toBe('Alice');
 
-            // Garantia de segurança: o contrato do repositório/serviço não deve vazar a senha
+            // Garantia de segurança: o contrato não deve vazar a senha
             expect(profile).not.toHaveProperty('passwordHash');
         });
 
         it('deve lançar AppError (404) caso o usuário não seja encontrado', async () => {
-            // 1. Ação & Asserção: Tentamos buscar um ID que não inserimos no banco falso
             const invalidId = 'id-que-nao-existe';
 
             await expect(userService.getProfile(invalidId)).rejects.toMatchObject(new AppError('Usuário não encontrado', 404));
+        });
+    });
+
+    describe('registerUser', () => {
+        it('deve registrar um novo usuário com sucesso e aplicar hash na senha', async () => {
+            const user = await userService.registerUser({
+                firstName: 'Jane',
+                lastName: 'Doe',
+                email: 'jane@example.com',
+                password: 'secure-password-123',
+                passwordConfirmation: 'secure-password-123',
+            });
+
+            expect(user).toHaveProperty('id');
+            expect(user.email).toBe('jane@example.com');
+            expect(hashProviderMock.hash).toHaveBeenCalledWith('secure-password-123');
+
+            const savedUser = await usersRepository.findByEmail('jane@example.com', true);
+            expect(savedUser?.passwordHash).toBe('hashed-password-result');
+        });
+
+        it('deve lançar um erro ao tentar registrar um e-mail que já existe', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'existing@example.com',
+                passwordHash: 'some-hash',
+            });
+
+            await expect(
+                userService.registerUser({
+                    firstName: 'Other',
+                    lastName: 'Person',
+                    email: 'existing@example.com',
+                    password: 'password-123',
+                    passwordConfirmation: 'password-123',
+                }),
+            ).rejects.toBeInstanceOf(AppError);
         });
     });
 });
