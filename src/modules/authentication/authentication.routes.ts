@@ -12,12 +12,6 @@ authRoutes.post('/login', authIpRateLimiter, authAccountRateLimiter, validateDat
 authRoutes.post('/refresh', authIpRateLimiter, authenticateController.refreshToken);
 authRoutes.post('/forgot-password', authIpRateLimiter, authAccountRateLimiter, validateDataMiddleware(forgotPasswordSchema), authenticateController.forgotPassword);
 authRoutes.post('/reset-password', authIpRateLimiter, validateDataMiddleware(resetPasswordSchema), authenticateController.resetPassword);
-authRoutes.post(
-    '/change-password',
-    authMiddleware,
-    authAccountRateLimiter,
-    validateDataMiddleware(changePasswordUserSchema),
-    authenticateController.changeAuthenthicatedUserPassword,
-);
+authRoutes.post('/change-password', authMiddleware, validateDataMiddleware(changePasswordUserSchema), authenticateController.changeAuthenthicatedUserPassword);
 authRoutes.post('/logout', authenticateController.logout);
 authRoutes.post('/logout-all-devices', authMiddleware, authenticateController.revokeAllUserTokens);
