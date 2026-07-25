@@ -33,5 +33,5 @@ authRoutes.post(
     validateDataMiddleware(changePasswordUserSchema),
     authenticateController.changeAuthenthicatedUserPassword,
 );
-authRoutes.post('/logout', authenticateController.logout);
+authRoutes.post('/logout', authMiddleware, authenticateController.logout);
 authRoutes.post('/logout-all-devices', authMiddleware, authenticateController.revokeAllUserTokens);
