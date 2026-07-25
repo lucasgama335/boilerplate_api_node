@@ -42,6 +42,10 @@ export class AuthenticateUserService {
             throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
+        if (!user.isEmailConfirmed) {
+            throw new AppError('Por favor, confirme seu e-mail antes de fazer login.', 403);
+        }
+
         // Gera novo token de acesso
         const token = this.tokenProvider.generate(user.id);
 
