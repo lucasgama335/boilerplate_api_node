@@ -50,7 +50,14 @@ export class UserService {
     }
 
     async confirmEmail(confirmEmailToken: string): Promise<void> {
-        const decoded = this.tokenProvider.decode(confirmEmailToken) as { sub?: string; purpose?: string } | null;
+        // 1. Decodifica levemente apenas para checar o purpose ou extrair o ID com segurança após o verify
+        let decoded: { sub?: string; purpose?: string };
+        try {
+            decoded = this.tokenProvider.decode(confirmEmailToken);
+        } catch {
+            throw new AppError('Token de confirmação de e-mail inválido.', 400);
+        }
+
         if (!decoded || !decoded.sub || decoded.purpose !== 'email-confirmation') {
             throw new AppError('Token de confirmação de e-mail inválido.', 400);
         }
@@ -64,6 +71,7 @@ export class UserService {
             throw new AppError('Este e-mail já foi confirmado anteriormente.', 400);
         }
 
+        // 2. Valida assinatura e expiração de forma segura usando o segredo dinâmico do banco
         try {
             this.tokenProvider.verifyEmailConfirmationToken(confirmEmailToken, user.isEmailConfirmed);
         } catch {
