@@ -7,7 +7,7 @@ const envSchema = z.object({
     SERVER_PORT: z.coerce.number().default(3333),
     TRUST_PROXY_HOPS: z.coerce.number().default(0),
     FRONTEND_URL: z.string().url('A URL do frontend deve ser uma URL válida'),
-    LOG_LEVEL: z.enum(['info', 'trace', 'debug', 'info', 'war', 'error', 'fatal']).default('error'),
+    LOG_LEVEL: z.enum(['info', 'trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
     SENTRY_DSN: z.string().url().optional(),
     // Sem valor definido, o app.ts decide o default certo por ambiente
     // (baixo em produção pra economizar quota, alto em dev/test pra ver tudo).

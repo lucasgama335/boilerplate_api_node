@@ -1,5 +1,10 @@
 import { authMiddleware, emailConfirmationMiddleware } from '@/app/composition-root';
-import { authAccountRateLimiter, authIpRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
+import {
+    confirmEmailRequestIpLimiter,
+    registerRequestIpLimiter,
+    resendConfirmationEmailRequestIpLimiter,
+    resendConfirmationRequestEmailLimiter,
+} from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { env } from '@/env';
 import { Router } from 'express';
@@ -9,12 +14,12 @@ import { confirmEmailSchema, registerUserSchema, resendConfirmationEmailSchema }
 export const userRoutes = Router();
 
 userRoutes.get('/me', authMiddleware, emailConfirmationMiddleware, usersController.showProfile);
-userRoutes.post('/register', validateDataMiddleware(registerUserSchema), usersController.registerUser);
-userRoutes.post('/confirm-email', validateDataMiddleware(confirmEmailSchema), usersController.confirmEmail);
+userRoutes.post('/register', registerRequestIpLimiter, validateDataMiddleware(registerUserSchema), usersController.registerUser);
+userRoutes.post('/confirm-email', confirmEmailRequestIpLimiter, validateDataMiddleware(confirmEmailSchema), usersController.confirmEmail);
 userRoutes.post(
     '/resend-confirmation-email',
-    authIpRateLimiter,
-    authAccountRateLimiter,
+    resendConfirmationEmailRequestIpLimiter,
+    resendConfirmationRequestEmailLimiter,
     validateDataMiddleware(resendConfirmationEmailSchema),
     usersController.resendConfirmationEmail,
 );

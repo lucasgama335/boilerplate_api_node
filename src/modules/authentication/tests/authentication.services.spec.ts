@@ -77,6 +77,21 @@ describe('Authentication Service (Unit Test)', () => {
             expect(hashProviderMock.hash).toHaveBeenCalled();
             expect(tokenProviderMock.generatePasswordResetToken).not.toHaveBeenCalled();
         });
+
+        it('deve executar o hash dummy MESMO quando o usuário existe (equaliza o tempo de resposta)', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'hash-atual',
+            });
+
+            await authService.createResetPassword('john@example.com');
+
+            // Este é o teste que teria pego o bug: antes, o hash só rodava
+            // quando o usuário NÃO existia, invertendo a mitigação de timing.
+            expect(hashProviderMock.hash).toHaveBeenCalled();
+        });
     });
 
     describe('resetPassword', () => {

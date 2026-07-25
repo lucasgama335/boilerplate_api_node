@@ -186,5 +186,18 @@ describe('User Service (Unit Test)', () => {
 
             expect(tokenProviderMock.generateEmailConfirmationToken).not.toHaveBeenCalled();
         });
+
+        it('deve executar o hash dummy MESMO quando o usuário existe (equaliza o tempo de resposta)', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'hash',
+            });
+
+            await userService.resendConfirmEmail('john@example.com');
+
+            expect(hashProviderMock.hash).toHaveBeenCalled();
+        });
     });
 });

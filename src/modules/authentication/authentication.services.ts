@@ -5,6 +5,7 @@ import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { IUserSessionRevocationProvider } from '@/app/infra/user-session-revocation/UserSessionRevocationProvider';
 import { hashToken } from '@/app/utils/hash-token';
+import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
 import { env } from '@/env';
 import { IUserRepository } from '@/modules/users/users.repository';
 import crypto from 'node:crypto';
@@ -137,18 +138,16 @@ export class AuthenticateUserService {
 
     async createResetPassword(email: string): Promise<void> {
         const user = await this.userRepository.findByEmail(email, true);
+
+        // Paga o custo do hash sempre, exista o usuário ou não — é isso que de fato
+        // equaliza o tempo de resposta entre os dois casos.
+        await simulateHashDelay(this.hashProvider);
+
         if (!user) {
-            // 🛡️ Mitigação de Timing Attack:
-            // Se o e-mail não existe, o fluxo passaria rápido demais (apenas o SELECT no banco).
-            // Executamos um hash dummy para nivelar o tempo de processamento com o cenário em que o usuário existe,
-            // impedindo que um atacante descubra e-mails cadastrados medindo a latência da resposta.
-            const DUMMY_HASH = '$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wITvZH7c';
-            await this.hashProvider.hash(DUMMY_HASH);
             return;
         }
 
         const { id, passwordHash, lastLoginAt } = user;
-
         const resetPasswordToken = this.tokenProvider.generatePasswordResetToken(id, passwordHash, lastLoginAt);
         if (env.NODE_ENV === 'development') {
             console.log(`🛡️ [FORGET PASSWORD - TOKEN]: ${resetPasswordToken}`);
