@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
+import { env } from '@/env';
 import { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticateController } from '../authentication.controller';
@@ -113,7 +114,7 @@ describe('Authenticate Controller (Unit Test)', () => {
             await authController.logout(req as Request, res as Response);
 
             expect(mockAuthService.revokeByRawToken).toHaveBeenCalledWith('my-token');
-            expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: '/api/auth' });
+            expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', { path: env.AUTH_ROUTE_PREFIX });
             expect(res.status).toHaveBeenCalledWith(204);
         });
     });

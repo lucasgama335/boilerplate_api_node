@@ -2,6 +2,7 @@ import { AppError } from '@/app/exceptions/AppError';
 import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { logger } from '@/app/utils/logger';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
+import { env } from '@/env';
 import { Request, Response } from 'express';
 import { AuthenticateUserService } from './authentication.services';
 
@@ -46,7 +47,7 @@ export class AuthenticateController {
             logger.warn({ err: error }, 'Falha ao revogar refresh token durante logout');
         }
 
-        res.clearCookie('refreshToken', { path: '/api/auth' });
+        res.clearCookie('refreshToken', { path: env.AUTH_ROUTE_PREFIX });
         return res.status(204).send();
     };
 
@@ -90,7 +91,7 @@ export class AuthenticateController {
 
         // Se 'accessToken' é nulo, significa que foi um LOGOUT GLOBAL.
         if (!accessToken) {
-            res.clearCookie('refreshToken', { path: '/api/auth' });
+            res.clearCookie('refreshToken', { path: env.AUTH_ROUTE_PREFIX });
             return res.json({ message: 'Você foi desconectado de todos os dispositivos.' });
         }
 

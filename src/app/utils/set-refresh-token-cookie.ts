@@ -6,7 +6,7 @@ export function setRefreshTokenCookie(res: Response, token: string, expiresAt: D
         httpOnly: true,
         secure: env.NODE_ENV === 'production', // exige HTTPS em produção
         sameSite: 'strict',
-        path: '/api/auth', // só é enviado pras rotas de auth (refresh/logout), não em toda API
+        path: env.AUTH_ROUTE_PREFIX, // só é enviado pras rotas de auth (refresh/logout), não em toda API
         expires: expiresAt,
     });
 }
