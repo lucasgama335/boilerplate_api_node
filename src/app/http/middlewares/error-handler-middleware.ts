@@ -55,7 +55,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     // 4. Erro de integridade do Postgres (constraint fazendo seu trabalho, não um bug)
     if (isPostgresError(err)) {
         // Registra o erro real internamente com todos os detalhes
-        logger.error(
+        logger.warn(
             {
                 code: err.code,
                 detail: err.detail,
