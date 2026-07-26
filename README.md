@@ -69,4 +69,6 @@ npm install
 
 # AI TIP:
 
-npx repomix --remote 'https://github.com/lucasgama335/boilerplate_api_node' --style markdown --remove-comments --remove-empty-lines --compress
+npx repomix --remote 'https://github.com/lucasgama335/boilerplate_api_node' --style markdown
+
+Foi anexado a esta conversa um dump completo do código-fonte da aplicação. Sua tarefa é realizar um Code Review completo e sistemático, seguindo rigorosamente todas as diretrizes definidas no Prompt Mestre. Não resuma a análise, não faça uma revisão superficial e não assuma nada sem verificar. Leia efetivamente todos os arquivos necessários para entender como a aplicação funciona antes de emitir conclusões.
