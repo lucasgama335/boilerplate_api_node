@@ -69,4 +69,4 @@ npm install
 
 # AI TIP:
 
-- dumpall src/ -o context.md -m "PROJECT DUMP"
+npx repomix --remote 'https://github.com/lucasgama335/boilerplate_api_node' --style markdown --remove-comments --remove-empty-lines --compress
