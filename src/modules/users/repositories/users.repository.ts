@@ -21,7 +21,7 @@ export interface IUsersRepository {
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 
-    updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
+    updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<SafeUser>;
     updateLastLogin(userId: string, date: Date): Promise<void>;
     confirmEmail(userId: string): Promise<void>;
 }
@@ -87,10 +87,18 @@ export class DrizzleUsersRepository implements IUsersRepository {
         await this.db.update(users).set({ tokensRevokedAt: date }).where(eq(users.id, userId));
     }
 
-    async updatePassword(userId: string, newPassword: string): Promise<SafeUser> {
-        const [result] = await this.db.update(users).set({ passwordHash: newPassword }).where(eq(users.id, userId)).returning();
-        const { passwordHash: _, ...userWithoutPassword } = result;
+    async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<SafeUser> {
+        const updateData: { passwordHash: string; isEmailConfirmed?: boolean } = {
+            passwordHash: newPassword,
+        };
 
+        if (!isEmailConfirmed) {
+            updateData.isEmailConfirmed = true;
+        }
+
+        const [result] = await this.db.update(users).set(updateData).where(eq(users.id, userId)).returning();
+
+        const { passwordHash: _, ...userWithoutPassword } = result;
         return userWithoutPassword as SafeUser;
     }
 

@@ -179,7 +179,7 @@ export class AuthenticationUserService {
         }
 
         const hashedPassword = await this.hashProvider.hash(password);
-        await this.userRepository.updatePassword(userId, hashedPassword);
+        await this.userRepository.updatePassword(userId, hashedPassword, user.isEmailConfirmed);
 
         // 🛡️ Revoke all access tokens and refresh tokens from user
         await this.userSessionRevocationProvider.revokeAllTokens(userId);

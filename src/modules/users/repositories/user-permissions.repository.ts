@@ -34,12 +34,7 @@ export class DrizzleUserPermissionsRepository implements IUserPermissionsReposit
             })
             .from(userPermissions)
             .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
-            .where(
-                and(
-                    eq(userPermissions.userId, userId),
-                    eq(permissions.isActive, true), // 🛡️ Regra de Ouro: ignoramos permissões inativas
-                ),
-            );
+            .where(eq(userPermissions.userId, userId));
 
         // O select acima retorna um array de objetos:
         // [{ code: 'users:create' }, { code: 'reports:view' }]
