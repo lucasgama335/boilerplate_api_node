@@ -4,9 +4,13 @@
 const SENSITIVE_KEYS = new Set(['password', 'passwordConfirmation', 'newPassword', 'currentPassword', 'token', 'refreshToken', 'totpSecret']);
 
 export function sanitizeBody(body: unknown): unknown {
-    if (!body || typeof body !== 'object') {
-        return body;
-    }
+    if (!body || typeof body !== 'object') return body;
+    if (Array.isArray(body)) return body.map(sanitizeBody);
 
-    return Object.fromEntries(Object.entries(body as Record<string, unknown>).map(([key, value]) => [key, SENSITIVE_KEYS.has(key) ? '[REDACTED]' : value]));
+    return Object.fromEntries(
+        Object.entries(body as Record<string, unknown>).map(([key, value]) => {
+            if (SENSITIVE_KEYS.has(key)) return [key, '[REDACTED]'];
+            return [key, typeof value === 'object' ? sanitizeBody(value) : value];
+        }),
+    );
 }
