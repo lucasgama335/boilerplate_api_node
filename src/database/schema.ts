@@ -18,7 +18,7 @@ export const users = pgTable('users', {
     isSuperUser: boolean('is_super_user').default(false).notNull(),
     totpSecret: varchar('totp_secret', { length: 255 }), // Nulo se 2FA desativado
     isTwoFactorEnabled: boolean('is_two_factor_enabled').default(false).notNull(),
-    tokensRevokedAt: timestamp('tokens_revoked_at'),
+    tokensRevokedAt: timestamp('tokens_revoked_at', { withTimezone: true }),
 
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
