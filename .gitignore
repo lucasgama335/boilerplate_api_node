@@ -9,3 +9,4 @@ logs/
 .env.test
 context.md
 repomix-output.md
+prompt.pdf
