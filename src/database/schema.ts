@@ -83,7 +83,6 @@ export const departments = pgTable('departments', {
     id: uuid('id').defaultRandom().primaryKey(),
     name: varchar('name', { length: 100 }).notNull().unique(),
     description: text('description'),
-    isActive: boolean('is_active').default(true).notNull(),
     createdById: uuid('created_by_id').references(() => users.id, { onDelete: 'set null' }),
     updatedById: uuid('updated_by_id').references(() => users.id, { onDelete: 'set null' }),
 
@@ -112,7 +111,6 @@ export const permissions = pgTable('permissions', {
     id: uuid('id').defaultRandom().primaryKey(),
     code: varchar('code', { length: 150 }).unique().notNull(),
     description: text('description').notNull(),
-    isActive: boolean('is_active').default(true).notNull(),
 
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

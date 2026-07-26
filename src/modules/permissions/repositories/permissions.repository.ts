@@ -1,6 +1,6 @@
 import { DatabaseType } from '@/database';
 import { permissions } from '@/database/schema';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { count, desc, eq } from 'drizzle-orm';
 import { CreatePermissionDTO, Permission, PermissionsFindMany, UpdatePermissionDTO } from '../types/permissions.types';
 
 export interface IPermissionsRepository {
@@ -25,7 +25,6 @@ export class DrizzlePermissionsRepository implements IPermissionsRepository {
             this.db
                 .select()
                 .from(permissions)
-                .where(eq(permissions.isActive, true))
                 .orderBy(desc(permissions.createdAt)) // 👈 Ordenação estável (mais recentes primeiro)
                 .limit(limit)
                 .offset(offset),
@@ -40,20 +39,12 @@ export class DrizzlePermissionsRepository implements IPermissionsRepository {
     }
 
     async findById(id: string): Promise<Permission | null> {
-        const conditions = [eq(permissions.id, id), eq(permissions.isActive, true)];
-        const [result] = await this.db
-            .select()
-            .from(permissions)
-            .where(and(...conditions));
+        const [result] = await this.db.select().from(permissions).where(eq(permissions.id, id));
         return result || null;
     }
 
     async findByCode(code: string): Promise<Permission | null> {
-        const conditions = [eq(permissions.code, code), eq(permissions.isActive, true)];
-        const [result] = await this.db
-            .select()
-            .from(permissions)
-            .where(and(...conditions));
+        const [result] = await this.db.select().from(permissions).where(eq(permissions.code, code));
         return result || null;
     }
 
@@ -73,6 +64,6 @@ export class DrizzlePermissionsRepository implements IPermissionsRepository {
     }
 
     async delete(id: string): Promise<void> {
-        await this.db.update(permissions).set({ isActive: false }).where(eq(permissions.id, id)).returning();
+        await this.db.delete(permissions).where(eq(permissions.id, id));
     }
 }
