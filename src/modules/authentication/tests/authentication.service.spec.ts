@@ -18,6 +18,7 @@ describe('Authentication Service (Unit Test)', () => {
     let tokenProviderMock: any;
     let geolocationProviderMock: any;
     let userAgentProviderMock: any;
+    let authRateLimiterMock: any;
 
     beforeEach(() => {
         usersRepository = new InMemoryUserRepository();
@@ -45,6 +46,10 @@ describe('Authentication Service (Unit Test)', () => {
             parse: vi.fn().mockReturnValue({ os: 'Windows', deviceType: 'Desktop' }),
         };
 
+        authRateLimiterMock = {
+            resetLoginLimits: vi.fn(),
+        };
+
         authService = new AuthenticationUserService(
             usersRepository as any,
             refreshTokenRepository as any,
@@ -54,6 +59,7 @@ describe('Authentication Service (Unit Test)', () => {
             geolocationProviderMock,
             userAgentProviderMock,
             userSessionRevocationProvider as any,
+            authRateLimiterMock,
         );
     });
 
@@ -88,8 +94,6 @@ describe('Authentication Service (Unit Test)', () => {
 
             await authService.createResetPassword('john@example.com');
 
-            // Este é o teste que teria pego o bug: antes, o hash só rodava
-            // quando o usuário NÃO existia, invertendo a mitigação de timing.
             expect(hashProviderMock.hash).toHaveBeenCalled();
         });
     });
@@ -145,7 +149,7 @@ describe('Authentication Service (Unit Test)', () => {
     });
 
     describe('LoginUser', () => {
-        it('deve autenticar com sucesso e registrar lastLoginAt no repositório', async () => {
+        it('deve autenticar com sucesso, registrar lastLoginAt e resetar o rate limit de login', async () => {
             const user = await usersRepository.create({
                 firstName: 'John',
                 lastName: 'Doe',
@@ -164,6 +168,39 @@ describe('Authentication Service (Unit Test)', () => {
 
             const updatedUser = await usersRepository.findById(user.id, true);
             expect(updatedUser?.lastLoginAt).not.toBeNull();
+
+            expect(authRateLimiterMock.resetLoginLimits).toHaveBeenCalledWith('127.0.0.1', 'john@example.com');
+            expect(authRateLimiterMock.resetLoginLimits).toHaveBeenCalledTimes(1);
+        });
+
+        it('não deve resetar o rate limit de login quando a senha estiver incorreta', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hashed-password',
+            });
+
+            hashProviderMock.compare.mockResolvedValue(false);
+
+            await expect(authService.loginUser({ email: 'john@example.com', password: 'wrong-password' }, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
+
+            expect(authRateLimiterMock.resetLoginLimits).not.toHaveBeenCalled();
+        });
+
+        it('não deve resetar o rate limit de login quando o e-mail não estiver confirmado', async () => {
+            await usersRepository.create({
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+                passwordHash: 'valid-hashed-password',
+            });
+
+            hashProviderMock.compare.mockResolvedValue(true);
+
+            await expect(authService.loginUser({ email: 'john@example.com', password: 'correct-password' }, '127.0.0.1', 'Mozilla/5.0')).rejects.toBeInstanceOf(AppError);
+
+            expect(authRateLimiterMock.resetLoginLimits).not.toHaveBeenCalled();
         });
     });
 });

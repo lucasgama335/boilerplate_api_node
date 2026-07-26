@@ -7,6 +7,7 @@ export interface IUserPermissionsRepository {
     getPermissionsCode(userId: string): Promise<string[]>;
     setPermission(userId: string, permissionId: string, source: permissionSourceEnum, originDepartmentId?: string, grantedById?: string): Promise<void>;
     removePermission(userId: string, permissionId: string): Promise<void>;
+    removePermissionsByDepartment(userId: string, departmentId: string): Promise<void>;
     removeAllPermissions(userId: string): Promise<void>;
 }
 

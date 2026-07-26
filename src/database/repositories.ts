@@ -2,6 +2,7 @@ import { LoginAttemptsRepository } from '@/modules/authentication/repositories/l
 import { DrizzleRefreshsTokenRepository } from '@/modules/authentication/repositories/refresh-tokens.repository';
 import { DrizzleDepartmentPermissionsRepository } from '@/modules/departments/repositories/department-permissions.repository';
 import { DrizzleDepartmentsRepository } from '@/modules/departments/repositories/departments.repository';
+import { DrizzleUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { DrizzlePermissionsRepository } from '@/modules/permissions/repositories/permissions.repository';
 import { DrizzleUserPermissionsRepository } from '@/modules/users/repositories/user-permissions.repository';
 import { DrizzleUsersRepository } from '@/modules/users/repositories/users.repository';
@@ -15,3 +16,4 @@ export const permissionsRepository = new DrizzlePermissionsRepository(databaseIn
 export const departmentsRepository = new DrizzleDepartmentsRepository(databaseInstance);
 export const userPermissionsRepository = new DrizzleUserPermissionsRepository(databaseInstance);
 export const departmentPermissionsRepository = new DrizzleDepartmentPermissionsRepository(databaseInstance);
+export const userDepartmentsRepository = new DrizzleUserDepartmentsRepository(databaseInstance);

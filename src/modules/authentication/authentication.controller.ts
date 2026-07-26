@@ -1,5 +1,4 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { logger } from '@/app/utils/logger';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { env } from '@/env';
@@ -16,7 +15,6 @@ export class AuthenticateController {
 
         const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticationService.loginUser({ email, password }, ipAddress, userAgentString);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
-        await resetAuthRateLimits(ipAddress, email);
 
         return res.status(200).json({ user, token });
     };
@@ -79,9 +77,7 @@ export class AuthenticateController {
 
     revokeAllUserTokens = async (req: Request, res: Response): Promise<Response> => {
         const userId = req.user.id;
-
-        // Recebe a decisão do Front-end (padrão: desconectar tudo)
-        const keepCurrentSession = req.body?.keepCurrentSession || false;
+        const keepCurrentSession = req.body.keepCurrentSession; // Zod agarante que esse valor chegará aqui
 
         // Recupera o Refresh Token atual do cookie
         const refreshTokenString = req.cookies?.refreshToken;

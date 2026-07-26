@@ -5,14 +5,14 @@ export const authenticateUserSchema = z.object({
     password: z.string().min(1, 'A senha é obrigatória'),
 });
 
+export const forgotPasswordSchema = z.object({
+    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')),
+});
+
 export const refreshTokenSchema = z.object({
     refreshToken: z.string({
         error: 'O refresh token é obrigatório.',
     }),
-});
-
-export const forgotPasswordSchema = z.object({
-    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')),
 });
 
 export const resetPasswordSchema = z
@@ -55,9 +55,12 @@ export const changePasswordUserSchema = z
         path: ['newPassword'],
     });
 
+export const logouAllDevicesSchema = z.object({
+    keepCurrentSession: z.boolean().default(false),
+});
+
 // Gerando o tipo TypeScript a partir do Schema
 export type AuthenticateUserDTO = z.infer<typeof authenticateUserSchema>;
-export type RefreshTokenDTO = z.infer<typeof refreshTokenSchema>;
 export type ForgotPasswordDTO = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordDTO = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordUserDTO = z.infer<typeof changePasswordUserSchema>;

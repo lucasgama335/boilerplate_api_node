@@ -12,7 +12,7 @@ import {
 } from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { authenticateController } from './authentication.composition';
-import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, resetPasswordSchema } from './schemas/authentication.schemas';
+import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, logouAllDevicesSchema, resetPasswordSchema } from './schemas/authentication.schemas';
 
 export const authRoutes = Router();
 
@@ -34,4 +34,4 @@ authRoutes.post(
     authenticateController.changeAuthenthicatedUserPassword,
 );
 authRoutes.post('/logout', authMiddleware, authenticateController.logout);
-authRoutes.post('/logout-all-devices', authMiddleware, authenticateController.revokeAllUserTokens);
+authRoutes.post('/logout-all-devices', authMiddleware, validateDataMiddleware(logouAllDevicesSchema), authenticateController.revokeAllUserTokens);

@@ -142,20 +142,29 @@ export const changePasswordRequestIdLimiter = changePasswordIdLimiter.middleware
  * Limpa o contador de tentativas de login (tanto de IP quanto de Conta)
  * Deve ser chamada após um login efetuado com SUCESSO.
  */
-export async function resetAuthRateLimits(ip: string, email: string): Promise<void> {
-    const formattedEmail = getAccountKey(email);
+export interface IAuthRateLimiter {
+    resetLoginLimits(ip: string, email: string): Promise<void>;
+}
 
-    try {
-        loginIpLimiter.redisLimiter.resetKey(ip);
-        loginEmailLimiter.redisLimiter.resetKey(formattedEmail);
-    } catch (error) {
-        logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Redis (silenciado)');
-    }
+export class RateLimiterAdapter implements IAuthRateLimiter {
+    constructor() {}
 
-    try {
-        loginIpLimiter.memoryLimiter.resetKey(ip);
-        loginEmailLimiter.memoryLimiter.resetKey(formattedEmail);
-    } catch (error) {
-        logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Fallback (silenciado)');
+    async resetLoginLimits(ip: string, email: string): Promise<void> {
+        const formattedEmail = getAccountKey(email);
+
+        try {
+            loginIpLimiter.redisLimiter.resetKey(ip);
+            loginEmailLimiter.redisLimiter.resetKey(formattedEmail);
+        } catch (error) {
+            logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Redis (silenciado)');
+        }
+
+        try {
+            loginIpLimiter.memoryLimiter.resetKey(ip);
+            loginEmailLimiter.memoryLimiter.resetKey(formattedEmail);
+        } catch (error) {
+            logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Fallback (silenciado)');
+        }
     }
 }
+export const authRateLimiter: IAuthRateLimiter = new RateLimiterAdapter();

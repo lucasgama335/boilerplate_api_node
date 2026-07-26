@@ -79,3 +79,20 @@
 - **Usuário desmatriculado** (departamento continua existindo) → permissões daquele departamento **são removidas**; permissões manuais ficam intactas
 - **Conflito de fonte**: uma permissão nunca duplica pro mesmo usuário — quem chegou primeiro fica
 - Invalidação de cache sempre **depois** do commit da transação, nunca dentro dela
+
+O arquivo que eu anexei é um dump do código fonte da minha aplicação, que é um boilerplate de uma API com sistema de autenticação e autorização que servirá como base para projetos futuros.Faça um code review utilizando sua experiência de dev sênior da minha aplicação avalindo os seguintes parâmetros:
+
+- Verifique a existência de riscos de injeção, problemas de autenticação, exposição de segredos, criptografia insegura, falhas no tratamento de erros e riscos relacionados a dependências.
+- Confira se as alterações estão alinhadas com o objetivo da funcionalidade. Aponte quaisquer divergências em relação a contratos de API ou configurações de ambiente.
+- Analise o código quanto à modularidade e identifique casos de acoplamento forte, abstrações com vazamento de detalhes de implementação ou preocupações que atravessam camadas.
+  Elabore uma análise integrada que abranja segurança, contexto e modularidade.
+
+O estado atual da aplicação ao meu ver é quase completo, faltando apenas a implementação do gerenciamento de permissões diretamente ao usuário (funcionalidades listadas no TODO.MD)
+
+Alta — Corrigir o dead-end de reativação de permissions (adicionar overload findById(id, includeInactive)).
+Alta — Adicionar helmet() e compression() em app.ts, alinhando com o contexto técnico fixo.
+Média — Decidir e documentar um padrão único de exclusão (soft vs. hard delete) antes de estender para user-access.
+Média — Adicionar testes de service/repository para departments e permissions.
+Média — Reduzir acoplamento cross-layer (middleware de e-mail confirmado, chamada direta a resetAuthRateLimits no controller).
+Baixa — Eliminar duplicações (DUMMY_HASH, GRACE_PERIOD_SECONDS) e código morto (refreshTokenSchema, DrizzleUserDepartmentsRepository não instanciado).
+Antes de iniciar o user-access — Definir a estratégia de invalidação de cache Redis integrada aos futuros endpoints de concessão/revogação.

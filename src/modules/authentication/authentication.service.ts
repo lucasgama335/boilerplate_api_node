@@ -1,4 +1,5 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { IAuthRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
 import { IGeolocationProvider } from '@/app/infra/geolocation/GeolocationProvider';
 import { IHashProvider } from '@/app/infra/hashing/HashProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
@@ -24,6 +25,7 @@ export class AuthenticationUserService {
         private readonly geolocationProvider: IGeolocationProvider,
         private readonly userAgentProvider: IUserAgentProvider,
         private readonly userSessionRevocationProvider: IUserSessionsRevocationProvider,
+        private readonly authRateLimiter: IAuthRateLimiter,
     ) {}
 
     async loginUser(data: AuthenticateUserDTO, ipAddress: string, userAgentString: string) {
@@ -34,8 +36,7 @@ export class AuthenticationUserService {
         const device = this.userAgentProvider.parse(userAgentString);
 
         // hash "dummy", nunca corresponde a senha nenhuma - só existe pra gastar o mesmo tempo de CPU
-        const DUMMY_HASH = '$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wFWgcT1Z19LgXgITvZH7c';
-        const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : DUMMY_HASH);
+        const passwordMatch = await this.hashProvider.compare(password, user ? user.passwordHash : env.DUMMY_HASH);
 
         if (!user || !passwordMatch) {
             await this.loginAttemptsRepository.generateAttempt('fail', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user?.id);
@@ -43,7 +44,7 @@ export class AuthenticationUserService {
         }
 
         if (!user.isEmailConfirmed) {
-            throw new AppError('Por favor, confirme seu e-mail antes de fazer login.', 403);
+            throw new AppError('E-mail ou senha inválidos.', 401);
         }
 
         // Gera novo token de acesso
@@ -61,6 +62,11 @@ export class AuthenticationUserService {
 
         await this.userRepository.updateLastLogin(user.id, new Date());
         await this.loginAttemptsRepository.generateAttempt('success', ipAddress, location.city, location.region, location.country, device.os, device.deviceType, email, user.id);
+
+        // 🛡️ Reseta o rate limit de login (IP + conta) só quando o login é
+        // efetivamente bem-sucedido — regra de negócio, por isso vive aqui
+        // dentro do service, não no controller.
+        await this.authRateLimiter.resetLoginLimits(ipAddress, email);
 
         return {
             user: userWithoutPassword,
@@ -92,10 +98,9 @@ export class AuthenticationUserService {
         // Valida se já foi revogado (Tratamento com Grace Period para concorrência)
         if (tokenRecord.revokedAt) {
             const diffInSeconds = (nowDate.getTime() - new Date(tokenRecord.revokedAt).getTime()) / 1000;
-            const GRACE_PERIOD_SECONDS = 20;
 
             // Se passou da janela de graça, é tentativa de roubo/reuso malicioso!
-            if (diffInSeconds > GRACE_PERIOD_SECONDS) {
+            if (diffInSeconds > env.GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
                 await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Sessão comprometida. Faça login novamente.', 401);
@@ -226,9 +231,8 @@ export class AuthenticationUserService {
         // Valida se já foi revogado
         if (tokenRecord.revokedAt) {
             const diffInSeconds = (nowDate.getTime() - new Date(tokenRecord.revokedAt).getTime()) / 1000;
-            const GRACE_PERIOD_SECONDS = 20;
 
-            if (diffInSeconds > GRACE_PERIOD_SECONDS) {
+            if (diffInSeconds > env.GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
                 await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Refresh token inválido ou já utilizado.', 401);

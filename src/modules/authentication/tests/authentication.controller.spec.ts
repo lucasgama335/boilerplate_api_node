@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { resetAuthRateLimits } from '@/app/http/middlewares/rate-limiter.middleware';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { env } from '@/env';
 import { Request, Response } from 'express';
@@ -8,10 +7,6 @@ import { AuthenticateController } from '../authentication.controller';
 
 vi.mock('@/app/utils/set-refresh-token-cookie', () => ({
     setRefreshTokenCookie: vi.fn(),
-}));
-
-vi.mock('@/app/http/middlewares/rate-limiter.middleware', () => ({
-    resetAuthRateLimits: vi.fn(),
 }));
 
 vi.mock('@/app/utils/logger', () => ({
@@ -84,7 +79,7 @@ describe('Authenticate Controller (Unit Test)', () => {
     });
 
     describe('loginUser', () => {
-        it('deve fazer login, configurar cookie, resetar rate limit e retornar 200', async () => {
+        it('deve fazer login, configurar cookie e retornar 200', async () => {
             req.body = { email: 'john@example.com', password: 'password123' };
             req.headers = { 'user-agent': 'Mozilla/5.0' };
 
@@ -101,7 +96,8 @@ describe('Authenticate Controller (Unit Test)', () => {
 
             expect(mockAuthService.loginUser).toHaveBeenCalledWith({ email: 'john@example.com', password: 'password123' }, '127.0.0.1', 'Mozilla/5.0');
             expect(setRefreshTokenCookie).toHaveBeenCalledWith(res, 'raw-refresh-token', mockServiceResponse.refreshTokenExpiresAt);
-            expect(resetAuthRateLimits).toHaveBeenCalledWith('127.0.0.1', 'john@example.com');
+            // 👆 removida a asserção de resetAuthRateLimits: essa responsabilidade
+            // migrou para dentro do AuthenticationUserService (ver authentication.service.spec.ts)
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({ user: mockServiceResponse.user, token: 'access-token' });
         });

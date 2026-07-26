@@ -15,6 +15,8 @@ const envSchema = z.object({
     AUTH_ROUTE_PREFIX: z.string({
         error: 'O prefixo das rotas de autenticação não foi definido.',
     }),
+    DUMMY_HASH: z.string().default('$argon2id$v=19$m=65536,p=4,t=3$ov2rVR+AcpuDLmUn6skwHg$trsz7jJNUnKjVWSAz862t7wFWgcT1Z19LgXgITvZH7c'),
+    GRACE_PERIOD_SECONDS: z.coerce.number().default(20),
 
     // Banco de Dados
     DATABASE_URL: z.string().url('A URL do banco de dados deve ser uma URL válida'),

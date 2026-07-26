@@ -82,6 +82,6 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
 
     return res.status(500).json({
         status: 'error',
-        message: '🚨 Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',
+        message: 'Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',
     });
 }
