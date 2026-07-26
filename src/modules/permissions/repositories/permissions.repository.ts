@@ -7,7 +7,6 @@ export interface IPermissionsRepository {
     findMany(page: number, limit: number): Promise<PermissionsFindMany>;
     findById(id: string): Promise<Permission | null>;
     findByCode(code: string): Promise<Permission | null>;
-    findByCodeIncludingInactive(code: string): Promise<Permission | null>;
     create(data: CreatePermissionDTO): Promise<Permission>;
     update(id: string, data: UpdatePermissionDTO): Promise<Permission | null>;
     delete(id: string): Promise<void>;
@@ -44,11 +43,6 @@ export class DrizzlePermissionsRepository implements IPermissionsRepository {
     }
 
     async findByCode(code: string): Promise<Permission | null> {
-        const [result] = await this.db.select().from(permissions).where(eq(permissions.code, code));
-        return result || null;
-    }
-
-    async findByCodeIncludingInactive(code: string): Promise<Permission | null> {
         const [result] = await this.db.select().from(permissions).where(eq(permissions.code, code));
         return result || null;
     }
