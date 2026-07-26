@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { confirmEmailSchema, registerUserSchema, resendConfirmationEmailSchema } from '../users.schema';
+import { confirmEmailSchema, registerUserSchema, resendConfirmationEmailSchema } from '../schemas/users.schemas';
 
 describe('User Schemas (Zod)', () => {
     describe('registerUserSchema', () => {

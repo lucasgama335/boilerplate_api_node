@@ -1,4 +1,4 @@
-import { CreateUser, SafeUser, User } from '../users.types';
+import { CreateUserDTO, SafeUser, User } from '../types/users.types';
 
 export interface IFakeUserRepository {
     findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
@@ -9,7 +9,8 @@ export interface IFakeUserRepository {
     findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
     findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
 
-    create(data: CreateUser): Promise<SafeUser>;
+    create(data: CreateUserDTO): Promise<SafeUser>;
+    isUserSuperAdmin(userId: string): Promise<boolean>;
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
@@ -19,7 +20,7 @@ export interface IFakeUserRepository {
     confirmEmail(userId: string): Promise<void>;
 }
 
-export type CreateFakeUserData = CreateUser & {
+export type CreateFakeUserData = CreateUserDTO & {
     id?: string;
 };
 
@@ -65,6 +66,7 @@ export class InMemoryUserRepository implements IFakeUserRepository {
             lastName: data.lastName,
             email: data.email,
             isEmailConfirmed: false,
+            isSuperUser: false,
             totpSecret: null,
             isTwoFactorEnabled: false,
             tokensRevokedAt: null,
@@ -78,6 +80,11 @@ export class InMemoryUserRepository implements IFakeUserRepository {
 
         const { passwordHash: _, ...userWithoutPassword } = newUser;
         return userWithoutPassword;
+    }
+
+    async isUserSuperAdmin(userId: string): Promise<boolean> {
+        const user = this.items.find((item) => item.id === userId);
+        return user?.isSuperUser || false;
     }
 
     async getTokensRevokedAt(userId: string): Promise<Date | null> {

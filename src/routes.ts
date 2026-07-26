@@ -1,9 +1,13 @@
 import { authRoutes } from '@/modules/authentication/authentication.routes';
 import { Router } from 'express';
-import { userRoutes } from './modules/users/users.routes';
+import { departmentsRoutes } from './modules/departments/departments.routes';
+import { permissionsRoutes } from './modules/permissions/permissions.routes';
+import { usersRoutes } from './modules/users/users.routes';
 
 export const routes = Router();
 
-// Pluga as rotas do módulo de autenticação.
+// Pluga as rotas dos módulos
 routes.use('/auth', authRoutes);
-routes.use('/users', userRoutes);
+routes.use('/users', usersRoutes);
+routes.use('/departments', departmentsRoutes);
+routes.use('/permissions', permissionsRoutes);

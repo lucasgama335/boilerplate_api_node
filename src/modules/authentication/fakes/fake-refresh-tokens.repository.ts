@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as crypto from 'node:crypto';
-import { RefreshToken } from '../authentication.types';
-import { TransactionClient } from '../refresh-tokens.repository';
+import { TransactionClient } from '../repositories/refresh-tokens.repository';
+import { RefreshToken } from '../types/authentication.types';
 
 export interface IFakeRefreshTokenRepository {
     create(

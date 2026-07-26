@@ -12,7 +12,7 @@ import {
 } from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { authenticateController } from './authentication.composition';
-import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, resetPasswordSchema } from './authentication.schemas';
+import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, resetPasswordSchema } from './schemas/authentication.schemas';
 
 export const authRoutes = Router();
 

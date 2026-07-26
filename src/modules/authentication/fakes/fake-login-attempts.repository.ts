@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { LoginAttempt } from '../authentication.types';
+import { LoginAttempt } from '../types/authentication.types';
 
 export interface IFakeLoginAttemptsRepository {
     generateAttempt(

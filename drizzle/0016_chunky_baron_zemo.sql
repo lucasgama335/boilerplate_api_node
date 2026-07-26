@@ -1,0 +1,1 @@
+ALTER TABLE "user_permissions" ALTER COLUMN "source" SET DATA TYPE "public"."permission_sources";

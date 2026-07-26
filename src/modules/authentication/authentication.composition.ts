@@ -2,9 +2,9 @@ import { geolocationProvider, hashProvider, tokenProvider, userAgentProvider, us
 
 import { loginAttemptRepository, refreshTokenRepository, userRepository } from '@/database/repositories';
 import { AuthenticateController } from './authentication.controller';
-import { AuthenticateUserService } from './authentication.services';
+import { AuthenticationUserService } from './authentication.service';
 
-const authenticateService = new AuthenticateUserService(
+const authenticateService = new AuthenticationUserService(
     userRepository,
     refreshTokenRepository,
     loginAttemptRepository,

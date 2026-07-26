@@ -2,7 +2,7 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InMemoryUserRepository } from '../fakes/fake-users.repository';
-import { UserService } from '../users.services';
+import { UserService } from '../users.service';
 
 describe('User Service (Unit Test)', () => {
     let usersRepository: InMemoryUserRepository;

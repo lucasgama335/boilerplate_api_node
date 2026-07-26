@@ -1,0 +1,1 @@
+CREATE TYPE "public"."permission_source" AS ENUM('manual', 'department');

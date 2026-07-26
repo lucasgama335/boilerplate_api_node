@@ -4,17 +4,17 @@ import { logger } from '@/app/utils/logger';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { env } from '@/env';
 import { Request, Response } from 'express';
-import { AuthenticateUserService } from './authentication.services';
+import { AuthenticationUserService } from './authentication.service';
 
 export class AuthenticateController {
-    constructor(private readonly authenticateService: AuthenticateUserService) {}
+    constructor(private readonly authenticationService: AuthenticationUserService) {}
 
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticateService.loginUser({ email, password }, ipAddress, userAgentString);
+        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticationService.loginUser({ email, password }, ipAddress, userAgentString);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
         await resetAuthRateLimits(ipAddress, email);
 
@@ -30,7 +30,7 @@ export class AuthenticateController {
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { accessToken, newRawRefreshToken: newRefreshToken, expiresAt } = await this.authenticateService.refresh(refreshToken, ipAddress, userAgentString);
+        const { accessToken, newRawRefreshToken: newRefreshToken, expiresAt } = await this.authenticationService.refresh(refreshToken, ipAddress, userAgentString);
         setRefreshTokenCookie(res, newRefreshToken, expiresAt);
 
         return res.status(200).json({ accessToken });
@@ -40,7 +40,7 @@ export class AuthenticateController {
         const refreshToken = req.cookies?.refreshToken;
 
         try {
-            await this.authenticateService.revokeByRawToken(refreshToken);
+            await this.authenticationService.revokeByRawToken(refreshToken);
         } catch (error) {
             // Não travamos o logout do usuário por isso, mas registramos —
             // foi justamente um erro silencioso desse tipo que escondeu o bug crítico anterior.
@@ -54,7 +54,7 @@ export class AuthenticateController {
     forgotPassword = async (req: Request, res: Response): Promise<Response> => {
         const { email } = req.body;
 
-        await this.authenticateService.createResetPassword(email);
+        await this.authenticationService.createResetPassword(email);
 
         return res.status(200).send();
     };
@@ -62,7 +62,7 @@ export class AuthenticateController {
     resetPassword = async (req: Request, res: Response): Promise<Response> => {
         const { resetPasswordToken, password } = req.body;
 
-        await this.authenticateService.resetPassword(resetPasswordToken, password);
+        await this.authenticationService.resetPassword(resetPasswordToken, password);
 
         return res.status(200).json({ message: 'Operação realizada com sucesso.' });
     };
@@ -72,7 +72,7 @@ export class AuthenticateController {
         const refreshToken = req.cookies?.refreshToken;
         const { oldPassword, newPassword } = req.body;
 
-        const user = await this.authenticateService.changeAuthenthicatedUserPassword(userId, newPassword, refreshToken, oldPassword);
+        const user = await this.authenticationService.changeAuthenthicatedUserPassword(userId, newPassword, refreshToken, oldPassword);
 
         return res.status(200).json(user);
     };
@@ -87,7 +87,7 @@ export class AuthenticateController {
         const refreshTokenString = req.cookies?.refreshToken;
 
         // Executa o caso de uso
-        const { accessToken } = await this.authenticateService.revokeSessionsService(userId, keepCurrentSession, refreshTokenString);
+        const { accessToken } = await this.authenticationService.revokeSessionsService(userId, keepCurrentSession, refreshTokenString);
 
         // Se 'accessToken' é nulo, significa que foi um LOGOUT GLOBAL.
         if (!accessToken) {

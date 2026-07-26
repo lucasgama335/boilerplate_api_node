@@ -1,8 +1,8 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserRepository } from '@/modules/users/users.repository';
+import { IUsersRepository } from '@/modules/users/repositories/users.repository';
 import { NextFunction, Request, Response } from 'express';
 
-export function ensureEmailConfirmedMiddleware(userRepository: IUserRepository) {
+export function ensureEmailConfirmedMiddleware(userRepository: IUsersRepository) {
     return async (req: Request, _res: Response, next: NextFunction) => {
         const userId = req.user?.id;
 

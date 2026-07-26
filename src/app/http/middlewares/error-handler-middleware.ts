@@ -6,6 +6,26 @@ import * as Sentry from '@sentry/node';
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 
+// Códigos SQLSTATE do Postgres que representam violação de integridade — não são bugs,
+// são a constraint fazendo o trabalho dela (ex: corrida entre duas requisições tentando
+// inserir o mesmo registro). Não vão pro Sentry por esse motivo.
+const KNOWN_POSTGRES_ERROR_CODES: Record<string, { status: number; message: string }> = {
+    '23505': { status: 409, message: 'Esse registro já existe.' },
+    '23503': { status: 400, message: 'Um dos itens referenciados não existe.' },
+    '23502': { status: 400, message: 'Um campo obrigatório não foi informado.' },
+    '22P02': { status: 400, message: 'Um dos valores enviados tem formato inválido.' },
+};
+
+interface PostgresError extends Error {
+    code?: string;
+    detail?: string;
+    constraint?: string;
+}
+
+function isPostgresError(err: unknown): err is PostgresError {
+    return err instanceof Error && typeof (err as PostgresError).code === 'string' && /^[0-9A-Z]{5}$/.test((err as PostgresError).code!);
+}
+
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
     // 1. É um erro operacional previsto pelas nossas regras de negócio?
     if (err instanceof AppError) {
@@ -33,39 +53,35 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
         });
     }
 
-    // 4. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
+    // 4. Erro de integridade do Postgres (constraint fazendo seu trabalho, não um bug)
+    if (isPostgresError(err) && KNOWN_POSTGRES_ERROR_CODES[err.code!]) {
+        const { status, message } = KNOWN_POSTGRES_ERROR_CODES[err.code!];
+
+        // Log em nível de warn (não error): queremos rastreabilidade, mas sem
+        // acionar alerta — não é uma falha do sistema.
+        logger.warn({ pgCode: err.code, constraint: err.constraint, method: req.method, path: req.originalUrl }, 'Violação de integridade no banco de dados');
+
+        return res.status(status).json({ status: 'error', message });
+    }
+
+    // 5. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
     // Nunca repassamos req.body cru: em /auth/register e /auth/login ele contém senha
     // em texto claro, e isso não pode ir pro Sentry nem pro disco.
     const safeBody = sanitizeBody(req.body);
     Sentry.captureException(err, {
-        extra: {
-            body: safeBody,
-            params: req.params,
-            query: req.query,
-        },
+        extra: { body: safeBody, params: req.params, query: req.query },
         user: req.user ? { id: req.user.id } : undefined,
-        tags: {
-            route: req.originalUrl,
-            method: req.method,
-        },
+        tags: { route: req.originalUrl, method: req.method },
     });
 
-    logger.error(
-        {
-            err,
-            method: req.method,
-            path: req.originalUrl,
-            body: safeBody,
-            userId: req.user?.id,
-        },
-        'Unhandled Server Error',
-    );
+    logger.error({ err, method: req.method, path: req.originalUrl, body: safeBody, userId: req.user?.id }, 'Unhandled Server Error');
 
     if (env.NODE_ENV === 'development') {
         console.error('🚨 [Unhandled Error]:', err); // Debug no terminal
     }
+
     return res.status(500).json({
         status: 'error',
-        message: 'Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',
+        message: '🚨 Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',
     });
 }

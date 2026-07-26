@@ -1,0 +1,104 @@
+import { DatabaseType } from '@/database';
+import { users } from '@/database/schema';
+import { eq } from 'drizzle-orm';
+import { CreateUserDTO, SafeUser, User } from '../types/users.types';
+
+export interface IUsersRepository {
+    // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
+    // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
+    findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
+
+    findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
+    findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
+
+    create(data: CreateUserDTO): Promise<SafeUser>;
+
+    isUserSuperAdmin(userId: string): Promise<boolean>;
+
+    getTokensRevokedAt(userId: string): Promise<Date | null>;
+    setTokensRevokedAt(userId: string, now: Date): Promise<void>;
+
+    updatePassword(userId: string, newPassword: string): Promise<SafeUser>;
+    updateLastLogin(userId: string, date: Date): Promise<void>;
+    confirmEmail(userId: string): Promise<void>;
+}
+
+export class DrizzleUsersRepository implements IUsersRepository {
+    constructor(private readonly db: DatabaseType) {}
+
+    async findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
+    async findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
+    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
+        // Retorna um array, ex: [{ id: 1, email: '...' }] ou []
+        // Usamos a variável dentro de colchetes pq faz com que o javascript já retorne o primeiro item do array retornado tornando a variável o objeto em si.
+        const [result] = await this.db.select().from(users).where(eq(users.email, email));
+        if (!result) {
+            return null;
+        }
+
+        if (!showUserPasswordHash) {
+            const { passwordHash: _, ...userWithoutPassword } = result;
+            return (userWithoutPassword as SafeUser) || null;
+        }
+
+        return (result as User) || null;
+    }
+
+    async findById(id: string, showUserPasswordHash: true): Promise<User | null>;
+    async findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
+    async findById(id: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
+        const [result] = await this.db.select().from(users).where(eq(users.id, id));
+        if (!result) {
+            return null;
+        }
+
+        if (!showUserPasswordHash) {
+            const { passwordHash: _, ...userWithoutPassword } = result;
+            return (userWithoutPassword as SafeUser) || null;
+        }
+
+        return (result as User) || null;
+    }
+
+    async create(data: CreateUserDTO): Promise<SafeUser> {
+        const [result] = await this.db.insert(users).values(data).returning();
+
+        const { passwordHash: _, ...userWithoutPassword } = result;
+
+        return userWithoutPassword;
+    }
+
+    async isUserSuperAdmin(userId: string): Promise<boolean> {
+        const [result] = await this.db.select({ isSuperUser: users.isSuperUser }).from(users).where(eq(users.id, userId));
+        return result.isSuperUser || false;
+    }
+
+    async getTokensRevokedAt(userId: string): Promise<Date | null> {
+        const [user] = await this.db.select({ tokensRevokedAt: users.tokensRevokedAt }).from(users).where(eq(users.id, userId));
+
+        // Retorna a data se existir, ou null
+        return user?.tokensRevokedAt || null;
+    }
+
+    async setTokensRevokedAt(userId: string, date: Date): Promise<void> {
+        await this.db.update(users).set({ tokensRevokedAt: date }).where(eq(users.id, userId));
+    }
+
+    async updatePassword(userId: string, newPassword: string): Promise<SafeUser> {
+        const [result] = await this.db.update(users).set({ passwordHash: newPassword }).where(eq(users.id, userId)).returning();
+        const { passwordHash: _, ...userWithoutPassword } = result;
+
+        return userWithoutPassword as SafeUser;
+    }
+
+    async updateLastLogin(userId: string, date: Date): Promise<void> {
+        await this.db.update(users).set({ lastLoginAt: date }).where(eq(users.id, userId));
+    }
+
+    async confirmEmail(userId: string): Promise<void> {
+        await this.db.update(users).set({ isEmailConfirmed: true, updatedAt: new Date() }).where(eq(users.id, userId));
+    }
+}

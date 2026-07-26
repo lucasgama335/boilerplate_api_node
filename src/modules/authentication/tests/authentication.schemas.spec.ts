@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, refreshTokenSchema, resetPasswordSchema } from '../authentication.schemas';
+import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, refreshTokenSchema, resetPasswordSchema } from '../schemas/authentication.schemas';
 
 describe('Authentication Schemas (Zod)', () => {
     describe('forgotPasswordSchema', () => {
