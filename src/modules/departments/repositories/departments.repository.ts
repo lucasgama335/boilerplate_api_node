@@ -1,7 +1,7 @@
 import { DatabaseType } from '@/database';
 import { departmentPermissions, departments, permissions } from '@/database/schema';
 import { Permission } from '@/modules/permissions/types/permissions.types';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { count, desc, eq, inArray } from 'drizzle-orm';
 import { CreateDepartmentDTO, Department, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../types/departments.types';
 
 export interface IDepartmentsRepository {
@@ -110,11 +110,7 @@ export class DrizzleDepartmentsRepository implements IDepartmentsRepository {
             return true;
         }
 
-        const conditions = [inArray(permissions.id, ids), eq(permissions.isActive, true)];
-        const found = await this.db
-            .select({ id: permissions.id })
-            .from(permissions)
-            .where(and(...conditions));
+        const found = await this.db.select({ id: permissions.id }).from(permissions).where(inArray(permissions.id, ids));
 
         return found.length === ids.length;
     }

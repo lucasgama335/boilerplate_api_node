@@ -33,15 +33,8 @@ export class PermissionsService {
 
     async create(data: CreatePermissionDTO): Promise<Permission> {
         const existing = await this.permissionsRepository.findByCodeIncludingInactive(data.code);
-
-        if (existing?.isActive) {
+        if (existing) {
             throw new AppError('Já existe uma permissão vinculada a esse code.', 409);
-        }
-
-        if (existing && !existing.isActive) {
-            // Existe uma permissão com esse código, mas ela foi desativada — reativa em vez
-            // de tentar inserir de novo (evitaria colidir com a constraint unique do banco).
-            throw new AppError(`Já existe uma permissão desativada com o code "${data.code}". Reative-a em vez de criar uma nova.`, 409);
         }
 
         const createdPermission = await this.permissionsRepository.create(data);
