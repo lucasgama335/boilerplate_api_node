@@ -54,14 +54,41 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     }
 
     // 4. Erro de integridade do Postgres (constraint fazendo seu trabalho, não um bug)
-    if (isPostgresError(err) && KNOWN_POSTGRES_ERROR_CODES[err.code!]) {
-        const { status, message } = KNOWN_POSTGRES_ERROR_CODES[err.code!];
+    if (isPostgresError(err)) {
+        // Registra o erro real internamente com todos os detalhes
+        logger.error(
+            {
+                code: err.code,
+                detail: err.detail,
+                constraint: err.constraint,
+            },
+            'Database Error',
+        );
 
-        // Log em nível de warn (não error): queremos rastreabilidade, mas sem
-        // acionar alerta — não é uma falha do sistema.
-        logger.warn({ pgCode: err.code, constraint: err.constraint, method: req.method, path: req.originalUrl }, 'Violação de integridade no banco de dados');
+        if (env.NODE_ENV === 'development') {
+            // specifics errors
+            if (KNOWN_POSTGRES_ERROR_CODES[err.code!]) {
+                const { status, message } = KNOWN_POSTGRES_ERROR_CODES[err.code!];
+                return res.status(409).json({
+                    status: status,
+                    message: message,
+                });
+            }
+        } else {
+            // unique_violation
+            if (err.code === '23505') {
+                return res.status(409).json({
+                    status: 'error',
+                    message: 'Conflito de dados. O recurso já existe ou os dados são inválidos.',
+                });
+            }
+        }
 
-        return res.status(status).json({ status: 'error', message });
+        // Retorno genérico para qualquer outro erro de banco (foreign key, syntax, etc)
+        return res.status(500).json({
+            status: 'error',
+            message: 'Erro interno no processamento de dados.',
+        });
     }
 
     // 5. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
