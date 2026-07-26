@@ -6,13 +6,13 @@ type Prettify<T> = {
 } & {};
 export type Department = typeof departments.$inferSelect;
 export type CreateDepartmentDTO = Prettify<
-    Partial<Pick<Department, 'description' | 'createdById' | 'isActive'>> &
+    Partial<Pick<Department, 'description' | 'createdById'>> &
         Pick<Department, 'name'> & {
             permissions?: string[];
         }
 >;
 export type UpdateDepartmentDTO = Prettify<
-    Partial<Pick<Department, 'name' | 'description' | 'isActive' | 'createdById' | 'updatedById'>> & {
+    Partial<Pick<Department, 'name' | 'description' | 'createdById' | 'updatedById'>> & {
         permissions?: string[];
     }
 >;
