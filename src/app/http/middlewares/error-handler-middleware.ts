@@ -37,11 +37,10 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
         return res.status(400).json({
             status: 'error',
             message: 'Erro de validação nos campos enviados.',
-            // Mapeamos os erros para o front-end saber exatamente qual campo falhou
             errors: err.issues.map((issue) => ({
                 field: issue.path.join('.'),
                 message: issue.message,
-            })), // <-- Note os parênteses envolvendo as chaves do objeto!
+            })),
         });
     }
 
@@ -65,23 +64,15 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
             'Database Error',
         );
 
-        if (env.NODE_ENV === 'development') {
-            // specifics errors
-            if (KNOWN_POSTGRES_ERROR_CODES[err.code!]) {
-                const { status, message } = KNOWN_POSTGRES_ERROR_CODES[err.code!];
-                return res.status(409).json({
-                    status: status,
-                    message: message,
-                });
-            }
-        } else {
-            // unique_violation
-            if (err.code === '23505') {
-                return res.status(409).json({
-                    status: 'error',
-                    message: 'Conflito de dados. O recurso já existe ou os dados são inválidos.',
-                });
-            }
+        // Se for um erro conhecido (ex: FK não encontrada, Unique Constraint),
+        // devolve a mensagem opaca de cliente com o status correto (400 ou 409)
+        // independentemente do ambiente de execução.
+        if (err.code && KNOWN_POSTGRES_ERROR_CODES[err.code]) {
+            const { status, message } = KNOWN_POSTGRES_ERROR_CODES[err.code];
+            return res.status(status).json({
+                status: 'error',
+                message: message,
+            });
         }
 
         // Retorno genérico para qualquer outro erro de banco (foreign key, syntax, etc)
@@ -92,8 +83,6 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     }
 
     // 5. Erros não tratados (Bugs inesperados de código, falha no banco, etc.)
-    // Nunca repassamos req.body cru: em /auth/register e /auth/login ele contém senha
-    // em texto claro, e isso não pode ir pro Sentry nem pro disco.
     const safeBody = sanitizeBody(req.body);
     Sentry.captureException(err, {
         extra: { body: safeBody, params: req.params, query: req.query },

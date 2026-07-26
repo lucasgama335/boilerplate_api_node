@@ -149,18 +149,21 @@ export interface IAuthRateLimiter {
 export class RateLimiterAdapter implements IAuthRateLimiter {
     constructor() {}
 
-    async resetLoginLimits(ip: string, email: string): Promise<void> {
+    async resetLoginLimits(_ip: string, email: string): Promise<void> {
+        // Se um atacante estiver realizando um ataque de força bruta a partir de um IP contra múltiplos usuários,
+        // e a cada 9 tentativas falhas ele fizer 1 tentativa válida usando uma conta de teste que ele mesmo criou,
+        // o contador de IP será resetado. Ele contorna o bloqueio de IP indefinidamente. Assim, resetamos apenas o limite da conta.
         const formattedEmail = getAccountKey(email);
 
         try {
-            loginIpLimiter.redisLimiter.resetKey(ip);
+            // loginIpLimiter.redisLimiter.resetKey(ip);
             loginEmailLimiter.redisLimiter.resetKey(formattedEmail);
         } catch (error) {
             logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Redis (silenciado)');
         }
 
         try {
-            loginIpLimiter.memoryLimiter.resetKey(ip);
+            // loginIpLimiter.memoryLimiter.resetKey(ip);
             loginEmailLimiter.memoryLimiter.resetKey(formattedEmail);
         } catch (error) {
             logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Fallback (silenciado)');
