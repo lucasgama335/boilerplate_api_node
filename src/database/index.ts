@@ -4,10 +4,13 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 
 // Cria o pool de conexões com o banco
-export const pool = new Pool({
+const pool = new Pool({
     connectionString: env.DATABASE_URL,
 });
 
 export const databaseInstance = drizzle(pool, { schema });
 
 export type DatabaseType = typeof databaseInstance;
+export const testDatabaseConnection = async (): Promise<void> => {
+    await pool.query('SELECT 1');
+};

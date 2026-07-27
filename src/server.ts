@@ -1,11 +1,10 @@
 import { app } from './app/app';
-import { pool } from './database/index';
+import { testDatabaseConnection } from './database/index';
 import { env } from './env';
 
 async function startServer() {
     try {
-        // Send a ping query to verify connection
-        await pool.query('SELECT 1');
+        await testDatabaseConnection();
         console.log('📦 PostgreSQL connection successful.');
 
         // Start Express app only if query succeeds
