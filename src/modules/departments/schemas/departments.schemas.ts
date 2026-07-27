@@ -5,7 +5,8 @@ export const departmentsCreateSchema = z.object({
         .string({ message: 'O nome do departamento é obrigatório.' })
         .trim()
         .min(2, 'O nome do departamento deve ter no mínimo 2 caracteres.')
-        .max(100, 'O nome do departamento deve ter no máximo 100 caracteres.'),
+        .max(100, 'O nome do departamento deve ter no máximo 100 caracteres.')
+        .nonoptional(),
 
     description: z.string().trim().max(500, 'A descrição deve ter no máximo 500 caracteres.').optional().nullable(),
 

@@ -8,9 +8,9 @@ export class DepartmentsController {
         const page = Number(req.query.page);
         const limit = Number(req.query.limit);
 
-        // const withPermissions = req.query.withPermissions; (Futuramente se precisar podemos deixar a decisão de listar com as permissões para o frontend)
+        // const withPermissions = req.query.withPermissions === 'true' ? true : false; // (Futuramente se precisar podemos deixar a decisão de listar com as permissões para o frontend) - Lembrar que precisa refatorar o teste do controller caso implemente isso
 
-        const permissions = await this.departmentsService.list(page, limit, true);
+        const permissions = await this.departmentsService.list(page, limit);
 
         return res.status(200).json(permissions);
     };

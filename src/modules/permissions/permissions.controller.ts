@@ -41,8 +41,8 @@ export class PermissionsController {
     delete = async (req: Request, res: Response): Promise<Response> => {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
-        const permission = await this.permissionsService.delete(id);
+        await this.permissionsService.delete(id);
 
-        return res.status(200).json({ permission });
+        return res.status(200).json({});
     };
 }
