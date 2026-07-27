@@ -1,4 +1,4 @@
-import { IUserPermissionsRepository } from '@/modules/users/repositories/user-permissions.repository';
+import { IUserPermissionsRepository } from '@/modules/user-access/repositories/user-permissions.repository';
 
 export interface IUserPermissionsProvider {
     // Busca a lista de permissões. Se não estiver no Redis,

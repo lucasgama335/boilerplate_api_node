@@ -28,8 +28,13 @@ export class AuthenticateController {
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { accessToken, newRawRefreshToken: newRefreshToken, expiresAt } = await this.authenticationService.refresh(refreshToken, ipAddress, userAgentString);
-        setRefreshTokenCookie(res, newRefreshToken, expiresAt);
+        const { accessToken, newRawRefreshToken, expiresAt } = await this.authenticationService.refresh(refreshToken, ipAddress, userAgentString);
+
+        // Dentro do grace period a rotação é suprimida (newRawRefreshToken vem null) —
+        // não mexemos no cookie existente, o cliente mantém o refresh token que já tinha.
+        if (newRawRefreshToken && expiresAt) {
+            setRefreshTokenCookie(res, newRawRefreshToken, expiresAt);
+        }
 
         return res.status(200).json({ accessToken });
     };

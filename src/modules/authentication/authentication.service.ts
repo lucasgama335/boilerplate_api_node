@@ -6,6 +6,7 @@ import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
 import { IUserSessionsRevocationProvider } from '@/app/infra/user-sessions-revocation/UserSessionsRevocationProvider';
 import { hashToken } from '@/app/utils/hash-token';
+import { logger } from '@/app/utils/logger';
 import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
 import { env } from '@/env';
 import { IUsersRepository } from '@/modules/users/repositories/users.repository';
@@ -105,13 +106,23 @@ export class AuthenticationUserService {
                 await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Sessão comprometida. Faça login novamente.', 401);
             }
+
+            // Dentro da janela de graça: tolera a corrida legítima (retry de rede,
+            // abas concorrentes usando o mesmo token quase ao mesmo tempo), mas NÃO
+            // rotaciona de novo — só emite um novo access token. Se rotacionássemos
+            // aqui, qualquer replay do token já revogado (inclusive por um atacante
+            // que o tenha roubado antes da rotação original) geraria uma sessão nova
+            // e persistente a cada tentativa dentro da janela, o que anula o
+            // propósito da reuse detection durante esses segundos.
+            logger.warn({ userId: tokenRecord.userId, refreshTokenId: tokenRecord.id, diffInSeconds }, 'Refresh token reutilizado dentro do grace period — rotação suprimida');
+
+            const accessToken = this.tokenProvider.generate(tokenRecord.userId);
+            return { accessToken, newRawRefreshToken: null, expiresAt: null };
         }
 
         // ROTAÇÃO DE TOKEN COM TRANSAÇÃO ATÔMICA
         const { accessToken, newRawRefreshToken, expiresAt } = await this.refreshTokenRepository.transaction(async (tx) => {
-            if (!tokenRecord.revokedAt) {
-                await this.refreshTokenRepository.revokeToken(tokenRecord.id, tx);
-            }
+            await this.refreshTokenRepository.revokeToken(tokenRecord.id, tx);
 
             const newAccessToken = this.tokenProvider.generate(tokenRecord.userId);
             const rawRefresh = crypto.randomBytes(64).toString('hex');

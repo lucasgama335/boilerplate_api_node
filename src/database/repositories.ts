@@ -4,7 +4,7 @@ import { DrizzleDepartmentPermissionsRepository } from '@/modules/departments/re
 import { DrizzleDepartmentsRepository } from '@/modules/departments/repositories/departments.repository';
 import { DrizzleUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { DrizzlePermissionsRepository } from '@/modules/permissions/repositories/permissions.repository';
-import { DrizzleUserPermissionsRepository } from '@/modules/users/repositories/user-permissions.repository';
+import { DrizzleUserPermissionsRepository } from '@/modules/user-access/repositories/user-permissions.repository';
 import { DrizzleUsersRepository } from '@/modules/users/repositories/users.repository';
 import { databaseInstance } from './index';
 

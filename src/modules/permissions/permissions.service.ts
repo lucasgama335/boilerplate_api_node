@@ -32,7 +32,7 @@ export class PermissionsService {
     }
 
     async create(data: CreatePermissionDTO): Promise<Permission> {
-        const existing = await this.permissionsRepository.findByCodeIncludingInactive(data.code);
+        const existing = await this.permissionsRepository.findByCode(data.code);
         if (existing) {
             throw new AppError('Já existe uma permissão vinculada a esse code.', 409);
         }

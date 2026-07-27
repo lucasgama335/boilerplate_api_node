@@ -24,6 +24,8 @@ export const registerUserSchema = z
         passwordConfirmation: z.string({
             error: 'O campo de confirmação de senha é obrigatório, mas não foi encontrado',
         }),
+
+        departments: z.array(z.uuid('O ID dos departamentos não são UUIDs válidos.')).optional(),
     })
     .refine((data) => data.password === data.passwordConfirmation, {
         message: 'As senhas não coincidem',

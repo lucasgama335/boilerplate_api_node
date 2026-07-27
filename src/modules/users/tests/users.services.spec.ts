@@ -48,7 +48,7 @@ describe('User Service (Unit Test)', () => {
         it('deve lançar AppError (404) caso o usuário não seja encontrado', async () => {
             const invalidId = 'id-que-nao-existe';
 
-            await expect(userService.getProfile(invalidId)).rejects.toMatchObject(new AppError('Usuário não encontrado', 404));
+            await expect(userService.getProfile(invalidId)).rejects.toMatchObject(new AppError('Usuário não encontrado.', 404));
         });
     });
 

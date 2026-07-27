@@ -15,9 +15,9 @@ export class UserService {
     ) {}
 
     async getProfile(userId: string): Promise<SafeUser> {
-        const user = await this.userRepository.findById(userId);
+        const user = await this.userRepository.findByIdWithDetails(userId);
         if (!user) {
-            throw new AppError('Usuário não encontrado', 404);
+            throw new AppError('Usuário não encontrado.', 404);
         }
         return user;
     }
@@ -27,12 +27,17 @@ export class UserService {
         // Executamos o hash da senha ANTES de ir ao banco de dados.
         // Isso "paga o pedágio" da lentidão do Argon2 de forma incondicional,
         // mascarando para o atacante se o e-mail já existe ou não.
-
         const hashedPassword = await this.hashProvider.hash(data.password);
 
         const userAlreadyExists = await this.userRepository.findByEmail(data.email);
         if (userAlreadyExists) {
             throw new AppError('Esse e-mail já está vinculado a uma conta cadastrada no sistema.', 409);
+        }
+        if (data.departments && data.departments.length > 0) {
+            const departmentsExists = await this.userRepository.checkDepartmentsExist(data.departments);
+            if (!departmentsExists) {
+                throw new AppError('Um ou mais IDs de departamentos informados são inválidos ou não existem.', 400);
+            }
         }
 
         // Extraímos o 'password' e agrupamos o resto das propriedades na variável 'userData'

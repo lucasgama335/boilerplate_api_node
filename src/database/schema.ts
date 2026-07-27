@@ -1,4 +1,3 @@
-import { InferEnum } from 'drizzle-orm';
 import { boolean, index, inet, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários
@@ -116,8 +115,6 @@ export const permissions = pgTable('permissions', {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const sourceEnum = pgEnum('permission_source', ['manual', 'department']);
-export type permissionSourceEnum = InferEnum<typeof sourceEnum>;
 export const userPermissions = pgTable(
     'user_permissions',
     {
@@ -128,8 +125,6 @@ export const userPermissions = pgTable(
         permissionId: uuid('permission_id')
             .references(() => permissions.id, { onDelete: 'cascade' })
             .notNull(),
-        source: sourceEnum('source').notNull(),
-        originDepartmentId: uuid('origin_department_id').references(() => departments.id, { onDelete: 'set null' }),
         grantedById: uuid('granted_by_id').references(() => users.id, { onDelete: 'set null' }),
 
         createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

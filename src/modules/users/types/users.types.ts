@@ -9,8 +9,13 @@ import { Permission } from '../../permissions/types/permissions.types';
 // ==========================================
 
 // Tipos Base
-export type User = typeof users.$inferSelect;
-export type CreateUserDTO = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect & {
+    departments?: Department[];
+    permissions?: Permission[];
+};
+export type CreateUserDTO = typeof users.$inferInsert & {
+    departments?: string[];
+};
 
 // Tipo Seguro (Data Transfer Object para a web)
 export type SafeUser = Omit<User, 'passwordHash' | 'totpSecret'>;
@@ -40,4 +45,8 @@ export type SafeUserWithPermissions = SafeUser & {
 
 export type SafeUserWithDepartments = SafeUser & {
     departments: Department[];
+};
+
+export type SafeUserWithDepartmentsAndPermissions = SafeUserWithDepartments & {
+    permissions: Permission[];
 };

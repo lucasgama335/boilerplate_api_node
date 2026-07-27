@@ -148,6 +148,13 @@
       "when": 1785095555194,
       "tag": "0020_handy_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785114519388,
+      "tag": "0021_sturdy_mentor",
+      "breakpoints": true
     }
   ]
 }
