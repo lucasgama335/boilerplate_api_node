@@ -58,7 +58,7 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
         const usersTemps = await this.userDepartmentsRepository.getDepartmentUsers(departmentId);
         if (usersTemps != null) {
             for (const user of usersTemps) {
-                await this.invalidatePermissions(user.id as string);
+                await this.invalidatePermissions(user.id);
             }
         }
     }
