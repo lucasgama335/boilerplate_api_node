@@ -1,25 +1,8 @@
 import { Permission } from '@/modules/permissions/types/permissions.types';
+import { IDepartmentsRepository } from '../../repositories/departments.repository';
 import { CreateDepartmentDTO, Department, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../../types/departments.types';
 
-export interface IInMemoryDepartmentsRepository {
-    findByName(name: string): Promise<Department | null>;
-
-    findById(id: string, withPermissions: true): Promise<DepartmentWithPermissions | null>;
-    findById(id: string, withPermissions?: false): Promise<Department | null>;
-    findById(id: string, withPermissions?: boolean): Promise<Department | DepartmentWithPermissions | null>;
-
-    findMany(page: number, limit: number, withPermissions: true): Promise<DepartmentsFindManyResponse<true>>;
-    findMany(page: number, limit: number, withPermissions?: false): Promise<DepartmentsFindManyResponse<false>>;
-    findMany(page: number, limit: number, withPermissions?: boolean): Promise<DepartmentsFindManyResponse<true> | DepartmentsFindManyResponse<false>>;
-
-    checkPermissionsExist(ids: string[]): Promise<boolean>;
-
-    create(data: CreateDepartmentDTO): Promise<DepartmentWithPermissions>;
-    update(id: string, data: UpdateDepartmentDTO): Promise<DepartmentWithPermissions>;
-    delete(id: string): Promise<void>;
-}
-
-export class InMemoryDepartmentsRepository implements IInMemoryDepartmentsRepository {
+export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
     public items: Department[] = [];
     public departmentPermissionsMap: Map<string, Permission[]> = new Map();
     public validPermissionIds: Set<string> = new Set();

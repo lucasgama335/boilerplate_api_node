@@ -1,15 +1,7 @@
+import { IPermissionsRepository } from '../../repositories/permissions.repository';
 import { CreatePermissionDTO, Permission, PermissionsFindMany, UpdatePermissionDTO } from '../../types/permissions.types';
 
-export interface IInMemoryPermissionsRepository {
-    findMany(page: number, limit: number): Promise<PermissionsFindMany>;
-    findById(id: string): Promise<Permission | null>;
-    findByCode(code: string): Promise<Permission | null>;
-    create(data: CreatePermissionDTO): Promise<Permission>;
-    update(id: string, data: UpdatePermissionDTO): Promise<Permission | null>;
-    delete(id: string): Promise<void>;
-}
-
-export class InMemoryPermissionsRepository implements IInMemoryPermissionsRepository {
+export class InMemoryPermissionsRepository implements IPermissionsRepository {
     private items: Permission[] = [];
 
     async findMany(page: number, limit: number): Promise<PermissionsFindMany> {
