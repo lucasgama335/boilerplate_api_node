@@ -62,7 +62,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Controller', () => {
             expect(mockRes.json).toHaveBeenCalledWith({ department: fakeFoundedDepartment });
         });
 
-        it('deve retornar status 200 e o corpo contendo a permissão achada mesmo que o params.id venha como array, pois somente o primeiro id será extraído', async () => {
+        it('deve retornar status 200 e o corpo contendo o departamento achado mesmo que o params.id venha como array, pois somente o primeiro id será extraído', async () => {
             mockReq.params = { id: ['123', '563'] };
 
             const fakeFoundedDepartment = { name: 'teste departamento', description: 'teste de descrição' };

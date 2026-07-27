@@ -13,7 +13,7 @@ export const registerUserSchema = z
             .min(2, 'O sobrenome deve ter no mínimo 2 caracteres')
             .transform((val) => val.charAt(0).toUpperCase() + val.slice(1)),
 
-        email: z.string().trim().toLowerCase().email('Formato de e-mail inválido'),
+        email: z.email('Formato de e-mail inválido'),
 
         password: z
             .string()
@@ -33,11 +33,11 @@ export const registerUserSchema = z
     });
 
 export const confirmEmailSchema = z.object({
-    token: z.string().regex(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/, 'Token com formato inválido'),
+    token: z.string('O campo token é obrigatório.').regex(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/, 'Token com formato inválido'),
 });
 
 export const resendConfirmationEmailSchema = z.object({
-    email: z.string().trim().toLowerCase().email('Formato de e-mail inválido'),
+    email: z.email('Formato de e-mail inválido'),
 });
 
 export type RegisterUserDTO = z.infer<typeof registerUserSchema>;
