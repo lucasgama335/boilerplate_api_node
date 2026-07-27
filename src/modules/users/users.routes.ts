@@ -16,7 +16,7 @@ import { usersController } from './users.composition';
 export const usersRoutes = Router();
 
 usersRoutes.get('/me', authMiddleware, emailConfirmationMiddleware, usersController.showProfile);
-usersRoutes.get('/:id', authMiddleware, validateParamsMiddleware(idParamSchema), usersController.show);
+usersRoutes.get('/:id', authMiddleware, authorize(['users:show']), validateParamsMiddleware(idParamSchema), usersController.show);
 usersRoutes.post('/register', authMiddleware, authorize(['users:create']), registerRequestIpLimiter, validateDataMiddleware(registerUserSchema), usersController.registerUser);
 usersRoutes.post('/confirm-email', confirmEmailRequestIpLimiter, validateDataMiddleware(confirmEmailSchema), usersController.confirmEmail);
 usersRoutes.post(

@@ -53,7 +53,11 @@ export class DrizzlePermissionsRepository implements IPermissionsRepository {
     }
 
     async update(id: string, data: UpdatePermissionDTO): Promise<Permission | null> {
-        const [result] = await this.db.update(permissions).set(data).where(eq(permissions.id, id)).returning();
+        const [result] = await this.db
+            .update(permissions)
+            .set({ ...data, updatedAt: new Date() })
+            .where(eq(permissions.id, id))
+            .returning();
         return result || null;
     }
 

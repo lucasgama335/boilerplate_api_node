@@ -6,7 +6,7 @@ export interface ITokenProvider {
     generatePasswordResetToken(userId: string, passwordHash: string, lastLoginAt: Date | null): string;
     generateEmailConfirmationToken(userId: string, isEmailConfirmed: boolean): string;
     verify(token: string): { sub: string };
-    verifyPasswordResetToken(userId: string, passwordHash: string, lastLoginAt: Date | null): { sub: string };
+    verifyPasswordResetToken(token: string, passwordHash: string, lastLoginAt: Date | null): { sub: string };
     verifyEmailConfirmationToken(token: string, isEmailConfirmed: boolean): { sub: string };
     decode(token: string): { sub: string };
 }

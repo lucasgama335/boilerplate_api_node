@@ -191,6 +191,8 @@ export class DrizzleUsersRepository implements IUsersRepository {
             passwordHash: newPassword,
         };
 
+        // Caso o usuário não tenha verificado o e-mail ao resetar a senha já seta como confirmado,
+        // pois entende-se que para trocar a senha ele já tem acesso ao e-mail
         if (!isEmailConfirmed) {
             updateData.isEmailConfirmed = true;
         }

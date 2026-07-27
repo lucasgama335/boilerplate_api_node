@@ -248,6 +248,8 @@ export class AuthenticationUserService {
                 await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Refresh token inválido ou já utilizado.', 401);
             }
+
+            return;
         }
 
         await this.refreshTokenRepository.revokeToken(tokenRecord.id);

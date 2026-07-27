@@ -5,7 +5,7 @@ import { HashProvider } from '@/app/infra/hashing/HashProvider';
 import { redisClient } from '@/app/infra/redis/redis-client';
 import { TokenProvider } from '@/app/infra/token/TokenProvider';
 import { UserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
-import { userPermissionsRepository, userRepository } from '@/database/repositories';
+import { userDepartmentsRepository, userPermissionsRepository, userRepository } from '@/database/repositories';
 import { ensureAuthorizedMiddleware } from './http/middlewares/ensure-authorized-middleware';
 import { ensureEmailConfirmedMiddleware } from './http/middlewares/ensure-email-confirmed-middleware';
 import { UserPermissionsProvider } from './infra/user-permissions-provider/UserPermissionsProvider';
@@ -16,7 +16,7 @@ export const tokenProvider = new TokenProvider();
 export const geolocationProvider = new GeolocationProvider();
 export const userAgentProvider = new UserAgentProvider();
 export const userSessionRevocationProvider = new UserSessionsRevocationProvider(userRepository, redisClient);
-export const userPermissionsProvider = new UserPermissionsProvider(userPermissionsRepository, redisClient);
+export const userPermissionsProvider = new UserPermissionsProvider(userPermissionsRepository, userDepartmentsRepository, redisClient);
 
 export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider, userSessionRevocationProvider);
 export const emailConfirmationMiddleware = ensureEmailConfirmedMiddleware(userRepository);

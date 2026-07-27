@@ -75,6 +75,13 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
             });
         }
 
+        const safeBody = sanitizeBody(req.body);
+        Sentry.captureException(err, {
+            extra: { body: safeBody, params: req.params, query: req.query },
+            user: req.user ? { id: req.user.id } : undefined,
+            tags: { route: req.originalUrl, method: req.method },
+        });
+
         // Retorno genérico para qualquer outro erro de banco (foreign key, syntax, etc)
         return res.status(500).json({
             status: 'error',

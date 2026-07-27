@@ -1,3 +1,4 @@
+import { IUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { IUserPermissionsRepository } from '@/modules/user-access/repositories/user-permissions.repository';
 
 export interface IUserPermissionsProvider {
@@ -7,6 +8,7 @@ export interface IUserPermissionsProvider {
 
     // Apaga a chave do usuário no Redis para forçar
     // uma nova ida ao banco na próxima requisição.
+    invalidatePermissionsByDepartment(departmentId: string): Promise<void>;
     invalidatePermissions(userId: string): Promise<void>;
 }
 
@@ -21,6 +23,7 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
 
     constructor(
         private readonly userPermissionsRepository: IUserPermissionsRepository,
+        private readonly userDepartmentsRepository: IUserDepartmentsRepository,
         private readonly cache: IRedisCache,
     ) {}
 
@@ -49,6 +52,15 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
         }
 
         return permissions;
+    }
+
+    async invalidatePermissionsByDepartment(departmentId: string): Promise<void> {
+        const usersTemps = await this.userDepartmentsRepository.getDepartmentUsers(departmentId);
+        if (usersTemps != null) {
+            for (const user of usersTemps) {
+                await this.invalidatePermissions(user.id as string);
+            }
+        }
     }
 
     async invalidatePermissions(userId: string): Promise<void> {

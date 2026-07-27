@@ -1,9 +1,13 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
 import { IDepartmentsRepository } from './repositories/departments.repository';
 import { CreateDepartmentDTO, DepartmentWithPermissions, UpdateDepartmentDTO } from './types/departments.types';
 
 export class DepartmentsService {
-    constructor(private readonly departmentsRepository: IDepartmentsRepository) {}
+    constructor(
+        private readonly departmentsRepository: IDepartmentsRepository,
+        private readonly userPermissionsProvider: IUserPermissionsProvider,
+    ) {}
 
     async list<T extends boolean>(page: number, limit: number, withPermissions?: T) {
         // O TypeScript sabe exatamente se departments será Department[] ou DepartmentWithPermissions[]
@@ -97,6 +101,8 @@ export class DepartmentsService {
         }
 
         const updatedDepartment = await this.departmentsRepository.update(id, data);
+        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+
         if (!updatedDepartment) {
             throw new AppError('Ocorreu algum problema durante a atualização do departamento.', 500);
         }
@@ -110,6 +116,7 @@ export class DepartmentsService {
             throw new AppError('Departamento não encontrado em nossa base de dados.', 404);
         }
 
+        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
         await this.departmentsRepository.delete(id);
     }
 }

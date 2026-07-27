@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 
 // Cria o pool de conexões com o banco
-const pool = new Pool({
+export const pool = new Pool({
     connectionString: env.DATABASE_URL,
 });
 
