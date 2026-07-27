@@ -6,9 +6,9 @@ const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     SERVER_PORT: z.coerce.number().default(3333),
     TRUST_PROXY_HOPS: z.coerce.number().default(0),
-    FRONTEND_URL: z.string().url('A URL do frontend deve ser uma URL válida'),
+    FRONTEND_URL: z.url('A URL do frontend deve ser uma URL válida'),
     LOG_LEVEL: z.enum(['info', 'trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
-    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_DSN: z.url().optional(),
     // Sem valor definido, o app.ts decide o default certo por ambiente
     // (baixo em produção pra economizar quota, alto em dev/test pra ver tudo).
     SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0, 'Deve ser no mínimo 0').max(1, 'Deve ser no máximo 1').optional(),
@@ -19,7 +19,7 @@ const envSchema = z.object({
     GRACE_PERIOD_SECONDS: z.coerce.number().default(20),
 
     // Banco de Dados
-    DATABASE_URL: z.string().url('A URL do banco de dados deve ser uma URL válida'),
+    DATABASE_URL: z.url('A URL do banco de dados deve ser uma URL válida'),
 
     // Autenticação e Segurança
     JWT_SECRET: z.string().min(16, 'O JWT_SECRET deve ter no mínimo 16 caracteres para ser seguro'),
