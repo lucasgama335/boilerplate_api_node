@@ -166,7 +166,12 @@ export class AuthenticationService {
     }
 
     async resetPassword(resetPasswordToken: string, password: string): Promise<void> {
-        const { sub: userId } = this.tokenProvider.decode(resetPasswordToken);
+        const decoded = this.tokenProvider.decode(resetPasswordToken);
+        if (!decoded || !decoded.sub) {
+            throw new AppError('Token inválido ou malformado.', 401);
+        }
+
+        const userId = decoded.sub;
         const user = await this.userRepository.findById(userId);
 
         if (!user) {
