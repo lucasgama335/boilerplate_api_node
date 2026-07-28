@@ -84,7 +84,7 @@ REDIS_PASSWORD=''
 
 ## 🧪 Rodando os Testes
 
-O projeto conta com uma suíte de testes unitários desenvolvida com Vitest[cite: 1], utilizando implementações em memória para garantir isolamento, rapidez e ausência de efeitos colaterais externos:
+O projeto conta com uma suíte de testes unitários desenvolvida com Vitest, utilizando implementações em memória para garantir isolamento, rapidez e ausência de efeitos colaterais externos:
 
 ```
 # Executar todos os testes unitários da aplicação
