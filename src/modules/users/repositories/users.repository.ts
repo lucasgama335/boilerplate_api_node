@@ -127,7 +127,7 @@ export class DrizzleUsersRepository implements IUsersRepository {
 
     async isUserSuperAdmin(userId: string): Promise<boolean> {
         const [result] = await this.db.select({ isSuperUser: users.isSuperUser }).from(users).where(eq(users.id, userId));
-        return result.isSuperUser || false;
+        return result?.isSuperUser || false;
     }
 
     async getTokensRevokedAt(userId: string): Promise<Date | null> {
