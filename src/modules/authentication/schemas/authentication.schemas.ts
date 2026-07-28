@@ -1,12 +1,12 @@
 import z from 'zod';
 
 export const authenticateUserSchema = z.object({
-    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')),
+    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')).nonoptional(),
     password: z.string().min(1, 'A senha é obrigatória'),
 });
 
 export const forgotPasswordSchema = z.object({
-    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')),
+    email: z.string().trim().toLowerCase().pipe(z.email('Formato de e-mail inválido')).nonoptional(),
 });
 
 export const refreshTokenSchema = z.object({

@@ -11,8 +11,6 @@ export const departmentsCreateSchema = z.object({
 
     description: z.string().trim().max(500, 'A descrição deve ter no máximo 500 caracteres.').optional().nullable(),
 
-    isActive: z.boolean().default(true),
-
     permissions: z.array(z.uuid('Cada ID de permissão deve ser um UUID válido.')).optional(),
 });
 
@@ -25,8 +23,6 @@ export const departmentsUpdateSchema = z.object({
         .optional(),
 
     description: z.string().trim().max(500, 'A descrição deve ter no máximo 500 caracteres.').optional().nullable(),
-
-    isActive: z.boolean().optional(),
 
     permissions: z.array(z.uuid('Cada ID de permissão deve ser um UUID válido.')).optional(),
 });

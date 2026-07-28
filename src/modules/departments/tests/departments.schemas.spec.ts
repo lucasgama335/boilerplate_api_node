@@ -71,30 +71,6 @@ describe('[UNIT TEST]: Módulo de Departamentos - Schemas', () => {
             });
         });
 
-        describe('[property]: isActive', () => {
-            it('deve retornar erro se o campo isActive tiver um tipo diferente de boolean', () => {
-                const payload = {
-                    name: 'teste de departamento',
-                    isActive: 'teste',
-                };
-
-                const result2 = departmentsCreateSchema.safeParse(payload);
-
-                expect(result2.success).toBe(false);
-            });
-
-            it('deve ser válido se um valor booleano válido for fornecido no payload', () => {
-                const payload = {
-                    name: 'teste de departamento',
-                    isActive: false,
-                };
-
-                const result2 = departmentsCreateSchema.safeParse(payload);
-
-                expect(result2.success).toBe(true);
-            });
-        });
-
         describe('[property]: permissions', () => {
             it('deve retornar erro se o permissions não for um array de string', () => {
                 const payload = {
@@ -181,30 +157,6 @@ describe('[UNIT TEST]: Módulo de Departamentos - Schemas', () => {
                 if (!result2.success) {
                     expect(result2.error.issues[0].message).toBe('A descrição deve ter no máximo 500 caracteres.');
                 }
-            });
-        });
-
-        describe('[property]: isActive', () => {
-            it('deve retornar erro se o campo isActive tiver um tipo diferente de boolean', () => {
-                const payload = {
-                    name: 'teste de departamento',
-                    isActive: 'teste',
-                };
-
-                const result2 = departmentsUpdateSchema.safeParse(payload);
-
-                expect(result2.success).toBe(false);
-            });
-
-            it('deve ser válido se um valor booleano válido for fornecido no payload', () => {
-                const payload = {
-                    name: 'teste de departamento',
-                    isActive: false,
-                };
-
-                const result2 = departmentsUpdateSchema.safeParse(payload);
-
-                expect(result2.success).toBe(true);
             });
         });
 

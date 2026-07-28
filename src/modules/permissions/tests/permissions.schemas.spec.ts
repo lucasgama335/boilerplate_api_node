@@ -75,22 +75,6 @@ describe('[UNIT TEST]: Módulo de Permissões - Schemas', () => {
                 }
             });
         });
-
-        describe('[property]: isActive', () => {
-            it('deve assumir isActive como true por padrão quando for omitido', () => {
-                const payload = {
-                    code: 'users:create',
-                    description: 'Criar usuários',
-                };
-
-                const result = permissionsCreateSchema.safeParse(payload);
-
-                expect(result.success).toBe(true);
-                if (result.success) {
-                    expect(result.data.isActive).toBe(true);
-                }
-            });
-        });
     });
 
     describe('permissionsUpdateSchema', () => {

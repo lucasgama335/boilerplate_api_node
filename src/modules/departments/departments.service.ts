@@ -101,7 +101,9 @@ export class DepartmentsService {
         }
 
         const updatedDepartment = await this.departmentsRepository.update(id, data);
-        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+        if (hasPermissionChanges) {
+            await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+        }
 
         if (!updatedDepartment) {
             throw new AppError('Ocorreu algum problema durante a atualização do departamento.', 500);
@@ -116,7 +118,7 @@ export class DepartmentsService {
             throw new AppError('Departamento não encontrado em nossa base de dados.', 404);
         }
 
-        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
         await this.departmentsRepository.delete(id);
+        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
     }
 }
