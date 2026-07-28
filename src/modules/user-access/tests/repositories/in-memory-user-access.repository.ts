@@ -58,6 +58,31 @@ export class InMemoryUserPermissionsRepository implements IUserPermissionsReposi
         return [...new Set(codes)]; // Garantia extra contra códigos duplicados
     }
 
+    async getUserIdsByPermissionId(permissionId: string): Promise<string[]> {
+        const userIds = new Set<string>();
+
+        // 1. Procura usuários que possuem a permissão diretamente
+        for (const [userId, permIds] of this.userPermissionsMap.entries()) {
+            if (permIds.includes(permissionId)) {
+                userIds.add(userId);
+            }
+        }
+
+        // 2. Procura usuários que herdam a permissão através de departamentos
+        for (const [departmentId, permIds] of this.departmentPermissionsMap.entries()) {
+            if (permIds.includes(permissionId)) {
+                // Descobre quais usuários pertencem a este departamento
+                for (const [userId, depIds] of this.userDepartmentsMap.entries()) {
+                    if (depIds.includes(departmentId)) {
+                        userIds.add(userId);
+                    }
+                }
+            }
+        }
+
+        return Array.from(userIds);
+    }
+
     async setPermissions(userId: string, permissionsIds: string[], _grantedById?: string): Promise<UserWithPermissions> {
         // 1. Atualiza/Substitui as permissões do usuário
         this.userPermissionsMap.set(userId, permissionsIds);
