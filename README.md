@@ -48,3 +48,58 @@ src/
 ├── routes.ts               # Hub centralizador e unificado de rotas da API
 └── server.ts               # Inicialização da aplicação e verificação de saúde do banco
 ```
+
+## ⚙️ Variáveis de Ambiente
+
+Crie um arquivo .env na raiz do projeto com base nas validações definidas em src/env/index.ts:
+
+```
+# SERVER
+NODE_ENV='development'
+SERVER_PORT='3333'
+TRUST_PROXY_HOPS=''
+FRONTEND_URL='http://127.0.0.1'
+LOG_LEVEL='info'
+SENTRY_DSN='YOUR_SENTRY_URL'
+# Opcional. Se não definida, usa 0.2 em produção e 1.0 nos demais ambientes.
+SENTRY_TRACES_SAMPLE_RATE=
+AUTH_ROUTE_PREFIX='/api/auth'
+DUMMY_HASH = 'GENERATE_A_HASH_WITH_ARGON2_AND_PUT_HERE'
+GRACE_PERIOD_SECONDS = '20'
+
+# DATABASE
+DATABASE_URL='postgresql://postgres:user@password:port/db_name'
+
+# CRIPTOGRAFIA
+JWT_SECRET='YOUR_JWT_SECRET'
+ACCESS_TOKEN_EXPIRES_AT='15m'
+REFRESH_TOKEN_EXPIRES_AT=7
+RESET_PASSWORD_TOKEN_EXPIRES_AT='30m'
+
+# REDIS
+REDIS_HOST='localhost'
+REDIS_PORT='6379'
+REDIS_PASSWORD=''
+```
+
+## 🧪 Rodando os Testes
+
+O projeto conta com uma suíte de testes unitários desenvolvida com Vitest[cite: 1], utilizando implementações em memória para garantir isolamento, rapidez e ausência de efeitos colaterais externos:
+
+```
+# Executar todos os testes unitários da aplicação
+npm run test
+
+# Executar testes em modo watch
+npm run test:watch
+```
+
+## 🚦 Como Executar o Projeto
+
+```
+# Instalar as dependências do projeto
+npm install
+
+# Iniciar o servidor em ambiente de desenvolvimento
+npm run dev
+```
