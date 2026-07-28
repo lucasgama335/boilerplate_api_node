@@ -47,10 +47,4 @@ src/
 ├── modules/                # Módulos de Domínio (Authentication, Users, Departments, Permissions, UserAccess)
 ├── routes.ts               # Hub centralizador e unificado de rotas da API
 └── server.ts               # Inicialização da aplicação e verificação de saúde do banco
-
-## AI TIP:
-
-npx dumpall ./ -o context.md -e ".vscode" -e "dist" -e "logs" -e "node_modules" -e ".env.example" -e ".env.test" -e ".gitignore" -e ".prettierrc" -e "context.md" -e "eslint.config.msj" -e "package-lock.json" -e "README.md" -e "TODO.MD" -e "prompt.pdf"
-
-Foi anexado a esta conversa um dump completo do código-fonte da aplicação. Sua tarefa é realizar um Code Review completo e sistemático, seguindo rigorosamente todas as diretrizes definidas no Prompt Mestre. Não resuma a análise, não faça uma revisão superficial e não assuma nada sem verificar. Leia efetivamente todos os arquivos necessários para entender como a aplicação funciona antes de emitir conclusões.
 ```
