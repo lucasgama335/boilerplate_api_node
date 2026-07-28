@@ -1,11 +1,10 @@
 import { DatabaseType } from '@/database';
 import { userDepartments, users } from '@/database/schema';
-import { User } from '@/modules/users/types/users.types';
-import { and, eq, getTableColumns } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 export interface IUserDepartmentsRepository {
     getDepartmentsByUserId(userId: string): Promise<string[]>;
-    getDepartmentUsers(departmentId: string): Promise<User[] | null>;
+    getDepartmentUsers(departmentId: string): Promise<string[]>;
     setDepartment(userId: string, departmentId: string, grantedById?: string): Promise<void>;
     removeDepartment(userId: string, departmentId: string): Promise<void>;
     removeAllDepartments(userId: string): Promise<void>;
@@ -20,15 +19,14 @@ export class DrizzleUserDepartmentsRepository implements IUserDepartmentsReposit
         return results.map((bond) => bond.departmentId);
     }
 
-    async getDepartmentUsers(departmentId: string): Promise<User[] | null> {
-        const userCols = getTableColumns(users);
+    async getDepartmentUsers(departmentId: string): Promise<string[]> {
         const results = await this.db
-            .select(userCols)
+            .select({ id: users.id })
             .from(userDepartments)
             .innerJoin(users, eq(userDepartments.userId, users.id))
             .where(eq(userDepartments.departmentId, departmentId));
 
-        return results || null;
+        return results.map((result) => result.id);
     }
 
     async setDepartment(userId: string, departmentId: string, grantedById?: string): Promise<void> {

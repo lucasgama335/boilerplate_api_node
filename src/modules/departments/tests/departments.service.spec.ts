@@ -276,7 +276,19 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             });
         });
 
-        it('deve verificar se o método invalidatePermissionsByDepartment foi chamado para invalidar as permissões globais após atualizar um departamento', async () => {
+        it('deve verificar se o método invalidatePermissionsByDepartment foi chamado para invalidar as permissões globais após atualizar um departamento somente se houver alteração de permissões', async () => {
+            const createdDepartment = await departmentsRepository.create({
+                name: 'departamento-3',
+                description: 'description test 2',
+            });
+
+            vi.spyOn(departmentsRepository, 'checkPermissionsExist').mockResolvedValue(true);
+            await departmentsService.update(createdDepartment.id, { permissions: ['test-1'] });
+
+            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).toHaveBeenCalled();
+        });
+
+        it('deve verificar se o método invalidatePermissionsByDepartment não foi chamado para invalidar as permissões globais após atualizar um departamento somente se não houver alteração de permissões', async () => {
             const createdDepartment = await departmentsRepository.create({
                 name: 'departamento-3',
                 description: 'description test 2',
@@ -284,7 +296,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
 
             await departmentsService.update(createdDepartment.id, { name: 'departamento-1' });
 
-            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).toHaveBeenCalled();
+            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).not.toHaveBeenCalled();
         });
 
         it('deve retornar um objeto com o departamento atualizado', async () => {

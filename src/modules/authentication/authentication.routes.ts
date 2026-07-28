@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { authMiddleware } from '@/app/composition-root';
+import { authMiddleware, emailConfirmationMiddleware } from '@/app/composition-root';
 import {
     changePasswordRequestIdLimiter,
     forgotPasswordRequestEmailLimiter,
@@ -29,6 +29,7 @@ authRoutes.post('/reset-password', resetPasswordRequestIpLimiter, validateDataMi
 authRoutes.post(
     '/change-password',
     authMiddleware,
+    emailConfirmationMiddleware,
     changePasswordRequestIdLimiter,
     validateDataMiddleware(changePasswordUserSchema),
     authenticationController.changeAuthenticatedUserPassword,

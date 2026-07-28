@@ -112,7 +112,6 @@ export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
                 id,
                 code: `permission:${id}`,
                 description: `Permission description ${id}`,
-                isActive: true,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }));
@@ -145,7 +144,6 @@ export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
                     id: permId,
                     code: `permission:${permId}`,
                     description: `Permission description ${permId}`,
-                    isActive: true,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 }));

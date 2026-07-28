@@ -10,7 +10,15 @@ export const logger = pino({
     // o payload manualmente, isso impede que header de auth/cookie ou body.password
     // vazem pro log.
     redact: {
-        paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]', 'body.password', 'body.passwordConfirmation'],
+        paths: [
+            'req.headers.authorization',
+            'req.headers.cookie',
+            'res.headers["set-cookie"]',
+            'body.password',
+            'body.passwordConfirmation',
+            'body.oldPassword',
+            'body.resetPasswordToken',
+        ],
         censor: '[REDACTED]',
     },
 
