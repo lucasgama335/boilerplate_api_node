@@ -17,14 +17,12 @@ export class UserAccessService {
             throw new AppError('Usuário não encontrado na base de dados', 404);
         }
 
-        // 🛡️ Valida se as permissões enviadas existem antes de processar a comparação
-        if (permissions && permissions.length > 0) {
+        // 🛡️ Se o array não for vazio, valida se os IDs existem. Se for vazio, passa direto (revogação total).
+        if (permissions.length > 0) {
             const permissionsExist = await this.userPermissionsRepository.checkPermissionsExist(permissions);
             if (!permissionsExist) {
                 throw new AppError('Um ou mais IDs de permissão informados são inválidos ou não existem.', 400);
             }
-        } else {
-            throw new AppError('A lista de permissões está vazia.', 400);
         }
 
         // Insere as permissões do usuário

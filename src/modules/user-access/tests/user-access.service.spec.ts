@@ -35,16 +35,6 @@ describe('[UNIT TEST]: Módulo de User Access - Service', () => {
             });
         });
 
-        it('deve lançar AppError 400 se o array de permissões enviado for vazio', async () => {
-            const createdUser = await usersRepository.create(makeCreateUser());
-
-            await expect(userAccessService.setUserPermissions(createdUser.id, [])).rejects.toBeInstanceOf(AppError);
-            await expect(userAccessService.setUserPermissions(createdUser.id, [])).rejects.toMatchObject({
-                statusCode: 400,
-                message: 'A lista de permissões está vazia.',
-            });
-        });
-
         it('deve lançar AppError 400 se algum ID de permissão enviado não existir no banco de dados', async () => {
             const createdUser = await usersRepository.create(makeCreateUser());
 
