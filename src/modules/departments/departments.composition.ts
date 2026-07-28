@@ -1,7 +1,8 @@
+import { userPermissionsProvider } from '@/app/composition-root';
 import { departmentsRepository } from '@/database/repositories';
 import { DepartmentsController } from './departments.controller';
 import { DepartmentsService } from './departments.service';
 
-const departmentsService = new DepartmentsService(departmentsRepository);
+const departmentsService = new DepartmentsService(departmentsRepository, userPermissionsProvider);
 
 export const departmentsController = new DepartmentsController(departmentsService);
