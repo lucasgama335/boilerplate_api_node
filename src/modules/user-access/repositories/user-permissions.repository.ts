@@ -1,6 +1,6 @@
 import { DatabaseType } from '@/database';
 import { departmentPermissions, permissions, userDepartments, userPermissions, users } from '@/database/schema';
-import { SafeUserWithPermissions } from '@/modules/users/types/users.types';
+import { UserWithPermissions } from '@/modules/users/types/users.types';
 import { and, eq, inArray } from 'drizzle-orm';
 import { union } from 'drizzle-orm/pg-core';
 
@@ -8,7 +8,8 @@ export interface IUserPermissionsRepository {
     checkPermissionsExist(ids: string[]): Promise<boolean>;
     getPermissionsByUserId(userId: string): Promise<string[]>;
     getPermissionsCode(userId: string): Promise<string[]>;
-    setPermissions(userId: string, permissions: string[], grantedById?: string): Promise<SafeUserWithPermissions>;
+    getUserIdsByPermissionId(permissionId: string): Promise<string[]>;
+    setPermissions(userId: string, permissions: string[], grantedById?: string): Promise<UserWithPermissions>;
     removePermission(userId: string, permissionId: string): Promise<void>;
     removeAllPermissions(userId: string): Promise<void>;
 }
@@ -61,7 +62,24 @@ export class DrizzleUserPermissionsRepository implements IUserPermissionsReposit
         return results.map((row) => row.code);
     }
 
-    async setPermissions(userId: string, permissionsIds: string[], grantedById?: string): Promise<SafeUserWithPermissions> {
+    async getUserIdsByPermissionId(permissionId: string): Promise<string[]> {
+        // Usuários que têm a permissão concedida diretamente
+        const directUserIds = this.db.select({ userId: userPermissions.userId }).from(userPermissions).where(eq(userPermissions.permissionId, permissionId));
+
+        // Usuários que herdam a permissão via departamento
+        const inheritedUserIds = this.db
+            .select({ userId: userDepartments.userId })
+            .from(departmentPermissions)
+            .innerJoin(userDepartments, eq(departmentPermissions.departmentId, userDepartments.departmentId))
+            .where(eq(departmentPermissions.permissionId, permissionId));
+
+        // UNION já remove duplicatas (mesmo padrão usado em getPermissionsCode)
+        const results = await union(directUserIds, inheritedUserIds);
+
+        return results.map((row) => row.userId);
+    }
+
+    async setPermissions(userId: string, permissionsIds: string[], grantedById?: string): Promise<UserWithPermissions> {
         return await this.db.transaction(async (tx) => {
             // 1. Remove as permissões anteriores do usuário
             await tx.delete(userPermissions).where(eq(userPermissions.userId, userId));

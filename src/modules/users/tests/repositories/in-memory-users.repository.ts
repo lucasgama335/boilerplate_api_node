@@ -2,7 +2,7 @@
 import { Department } from '@/modules/departments/types/departments.types';
 import { Permission } from '@/modules/permissions/types/permissions.types';
 import { IUsersRepository } from '../../repositories/users.repository';
-import { CreateUserDTO, SafeUser, SafeUserWithDepartmentsAndPermissions, User } from '../../types/users.types';
+import { CreateUserDTO, User, UserWithDepartmentsAndPermissions } from '../../types/users.types';
 
 export class InMemoryUsersRepository implements IUsersRepository {
     // ---------------------------------------------------------
@@ -32,35 +32,17 @@ export class InMemoryUsersRepository implements IUsersRepository {
         return ids.every((id) => this.validDepartmentIds.has(id));
     }
 
-    async findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
-    async findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
-    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
+    async findByEmail(email: string): Promise<User | null> {
         const user = this.items.find((u) => u.email === email);
-        if (!user) return null;
-
-        if (!showUserPasswordHash) {
-            const { passwordHash: _, ...safeUser } = user;
-            return safeUser as SafeUser;
-        }
-
-        return user;
+        return user || null;
     }
 
-    async findById(id: string, showUserPasswordHash: true): Promise<User | null>;
-    async findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
-    async findById(id: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
+    async findById(id: string): Promise<User | null> {
         const user = this.items.find((u) => u.id === id);
-        if (!user) return null;
-
-        if (!showUserPasswordHash) {
-            const { passwordHash: _, ...safeUser } = user;
-            return safeUser as SafeUser;
-        }
-
-        return user;
+        return user || null;
     }
 
-    async findByIdWithDetails(userId: string): Promise<SafeUserWithDepartmentsAndPermissions | null> {
+    async findByIdWithDetails(userId: string): Promise<UserWithDepartmentsAndPermissions | null> {
         const user = this.items.find((u) => u.id === userId);
         if (!user) return null;
 
@@ -84,16 +66,14 @@ export class InMemoryUsersRepository implements IUsersRepository {
             effectivePermissions = this.mockPermissions.filter((p) => allPermIds.includes(p.id));
         }
 
-        const { passwordHash: _, ...safeUser } = user;
-
         return {
-            ...safeUser,
+            ...user,
             departments: userDeps,
             permissions: effectivePermissions,
-        } as SafeUserWithDepartmentsAndPermissions;
+        };
     }
 
-    async create(data: CreateUserDTO, _grantedById?: string): Promise<SafeUserWithDepartmentsAndPermissions> {
+    async create(data: CreateUserDTO, _grantedById?: string): Promise<UserWithDepartmentsAndPermissions> {
         const { departments: departmentsList, ...userData } = data;
 
         const newUser: User = {
@@ -105,7 +85,9 @@ export class InMemoryUsersRepository implements IUsersRepository {
             createdAt: new Date(),
             updatedAt: new Date(),
             ...userData,
-        } as User; // Ajuste o cast de acordo com a sua tipagem estrita do schema do Drizzle
+            totpSecret: userData.totpSecret ?? null,
+            isTwoFactorEnabled: userData.isTwoFactorEnabled ?? false,
+        };
 
         this.items.push(newUser);
 
@@ -113,8 +95,12 @@ export class InMemoryUsersRepository implements IUsersRepository {
             this.userDepartmentsMap.set(newUser.id, departmentsList);
         }
 
-        // Reaproveitamos a função que já monta o objeto completo com departamentos e permissões calculadas
-        return (await this.findByIdWithDetails(newUser.id)) as SafeUserWithDepartmentsAndPermissions;
+        const foundUser = await this.findByIdWithDetails(newUser.id);
+        if (!foundUser) {
+            throw new Error('User not found after creation');
+        }
+
+        return foundUser;
     }
 
     async isUserSuperAdmin(userId: string): Promise<boolean> {
@@ -134,7 +120,7 @@ export class InMemoryUsersRepository implements IUsersRepository {
         }
     }
 
-    async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<SafeUser> {
+    async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<User> {
         const userIndex = this.items.findIndex((u) => u.id === userId);
 
         if (userIndex !== -1) {
@@ -144,8 +130,7 @@ export class InMemoryUsersRepository implements IUsersRepository {
             }
         }
 
-        const { passwordHash: _, ...safeUser } = this.items[userIndex];
-        return safeUser as SafeUser;
+        return this.items[userIndex];
     }
 
     async updateLastLogin(userId: string, date: Date): Promise<void> {

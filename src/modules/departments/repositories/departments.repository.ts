@@ -1,8 +1,8 @@
 import { DatabaseType } from '@/database';
 import { departmentPermissions, departments, permissions } from '@/database/schema';
 import { Permission } from '@/modules/permissions/types/permissions.types';
-import { count, desc, eq, inArray } from 'drizzle-orm';
-import { CreateDepartmentDTO, Department, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../types/departments.types';
+import { and, count, desc, eq, gte, ilike, inArray, lte } from 'drizzle-orm';
+import { CreateDepartmentDTO, Department, DepartmentsFilters, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../types/departments.types';
 
 export interface IDepartmentsRepository {
     findByName(name: string): Promise<Department | null>;
@@ -11,9 +11,9 @@ export interface IDepartmentsRepository {
     findById(id: string, withPermissions?: false): Promise<Department | null>;
     findById(id: string, withPermissions?: boolean): Promise<Department | DepartmentWithPermissions | null>;
 
-    findMany(page: number, limit: number, withPermissions: true): Promise<DepartmentsFindManyResponse<true>>;
-    findMany(page: number, limit: number, withPermissions?: false): Promise<DepartmentsFindManyResponse<false>>;
-    findMany(page: number, limit: number, withPermissions?: boolean): Promise<DepartmentsFindManyResponse<true> | DepartmentsFindManyResponse<false>>;
+    findMany(page: number, limit: number, withPermissions: true, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<true>>;
+    findMany(page: number, limit: number, withPermissions?: false, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<false>>;
+    findMany(page: number, limit: number, withPermissions?: boolean, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<true> | DepartmentsFindManyResponse<false>>;
 
     checkPermissionsExist(ids: string[]): Promise<boolean>;
 
@@ -56,15 +56,34 @@ export class DrizzleDepartmentsRepository implements IDepartmentsRepository {
         };
     }
 
-    async findMany(page: number, limit: number, withPermissions: true): Promise<DepartmentsFindManyResponse<true>>;
-    async findMany(page: number, limit: number, withPermissions?: false): Promise<DepartmentsFindManyResponse<false>>;
-    async findMany<T extends boolean>(page: number, limit: number, withPermissions?: T): Promise<DepartmentsFindManyResponse<T>> {
+    async findMany(page: number, limit: number, withPermissions: true, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<true>>;
+    async findMany(page: number, limit: number, withPermissions?: false, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<false>>;
+    async findMany<T extends boolean>(page: number, limit: number, withPermissions?: T, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<T>> {
         const offset = (page - 1) * limit;
         const isWithPermissions = Boolean(withPermissions);
 
+        // CONSTRÓI AS CONDIÇÕES DINAMICAMENTE
+        const conditions = [];
+
+        if (filters?.name) {
+            // ilike faz a busca ignorando maiúsculas/minúsculas (ex: %Vendas%)
+            conditions.push(ilike(departments.name, `%${filters.name}%`));
+        }
+        if (filters?.startDate) {
+            conditions.push(gte(departments.createdAt, filters.startDate));
+        }
+        if (filters?.endDate) {
+            // Se quiser que pegue até o final do dia: lte(departments.createdAt, dataNoFinalDoDia)
+            conditions.push(lte(departments.createdAt, filters.endDate));
+        }
+
+        // Se houver condições, junta com AND. Se não, fica undefined (sem WHERE).
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        // APLICA O FILTRO NO COUNT E NA BUSCA PRINCIPAL
         const [countResult, items] = await Promise.all([
-            this.db.select({ count: count() }).from(departments),
-            this.db.select().from(departments).orderBy(desc(departments.createdAt)).limit(limit).offset(offset),
+            this.db.select({ count: count() }).from(departments).where(whereClause),
+            this.db.select().from(departments).where(whereClause).orderBy(desc(departments.createdAt)).limit(limit).offset(offset),
         ]);
 
         const total = Number(countResult[0]?.count ?? 0);

@@ -1,20 +1,21 @@
 import { Request, Response } from 'express';
 import { PermissionsService } from './permissions.service';
+import { PermissionsListQuery } from './schemas/permissions.schemas';
 
 export class PermissionsController {
     constructor(private readonly permissionsService: PermissionsService) {}
 
     list = async (req: Request, res: Response): Promise<Response> => {
-        const page = Number(req.query.page);
-        const limit = Number(req.query.limit);
+        const { page, limit, code, startDate, endDate } = req.query as unknown as PermissionsListQuery;
+        const filters = { code, startDate, endDate };
 
-        const permissions = await this.permissionsService.list(page, limit);
+        const permissions = await this.permissionsService.list(page, limit, filters);
 
         return res.status(200).json(permissions);
     };
 
     show = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
 
         const permission = await this.permissionsService.show(id);
 
@@ -30,7 +31,7 @@ export class PermissionsController {
     };
 
     update = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
         const data = req.body;
 
         const permission = await this.permissionsService.update(id, data);
@@ -39,7 +40,7 @@ export class PermissionsController {
     };
 
     delete = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
 
         await this.permissionsService.delete(id);
 

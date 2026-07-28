@@ -1,4 +1,5 @@
 import { AppError } from '@/app/exceptions/AppError';
+import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionsService } from '../permissions.service';
 import { IPermissionsRepository } from '../repositories/permissions.repository';
@@ -8,11 +9,20 @@ import { InMemoryPermissionsRepository } from './repositories/in-memory-permissi
 describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
     let permissionsRepository: IPermissionsRepository;
 
+    let mockUserPermissionsProvider: IUserPermissionsProvider;
+
     let permissionsService: PermissionsService;
     beforeEach(() => {
         permissionsRepository = new InMemoryPermissionsRepository();
 
-        permissionsService = new PermissionsService(permissionsRepository);
+        mockUserPermissionsProvider = {
+            getPermissions: vi.fn(),
+            invalidatePermissionsByDepartment: vi.fn(),
+            invalidatePermissionsByPermission: vi.fn(),
+            invalidatePermissions: vi.fn(),
+        };
+
+        permissionsService = new PermissionsService(permissionsRepository, mockUserPermissionsProvider);
     });
 
     describe('[method]: #list', () => {
@@ -59,6 +69,59 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             expect(results).toHaveProperty('meta.totalPages');
             expect(results.meta.totalPages).toBe(totalPages);
             expect(results.meta.total).toBe(totalRegisters);
+        });
+
+        it('deve filtrar os departamentos pelo nome ignorando maiúsculas e minúsculas', async () => {
+            await permissionsRepository.create({ code: 'users:create', description: 'teste' });
+            await permissionsRepository.create({ code: 'permissions:create', description: 'teste' });
+            await permissionsRepository.create({ code: 'permissions:update', description: 'teste' });
+
+            // Buscando por "permissions" (minúsculo)
+            const result = await permissionsService.list(1, 10, { code: 'permissions' });
+
+            expect(result.permissions).toHaveLength(2);
+            expect(result.meta.total).toBe(2);
+        });
+
+        it('deve filtrar os departamentos por intervalo de data de criação', async () => {
+            vi.useFakeTimers();
+
+            vi.setSystemTime(new Date('2026-01-01T10:00:00.000Z'));
+            await permissionsRepository.create({ code: 'users:create', description: 'teste' });
+
+            vi.setSystemTime(new Date('2026-06-01T10:00:00.000Z'));
+            await permissionsRepository.create({ code: 'permissions:create', description: 'teste' });
+
+            vi.setSystemTime(new Date('2026-12-01T10:00:00.000Z'));
+            await permissionsRepository.create({ code: 'permissions:update', description: 'teste' });
+
+            vi.useRealTimers();
+
+            // Filtrando apenas os que foram criados de Fevereiro a Novembro de 2026
+            const filters = {
+                startDate: new Date('2026-02-01T00:00:00.000Z'),
+                endDate: new Date('2026-11-30T23:59:59.000Z'),
+            };
+
+            const result = await permissionsService.list(1, 10, filters);
+
+            expect(result.permissions).toHaveLength(1);
+            expect(result.permissions[0].code).toBe('permissions:create');
+            expect(result.meta.total).toBe(1);
+        });
+
+        it('deve recalcular o totalPages corretamente quando um filtro é aplicado', async () => {
+            await permissionsRepository.create({ code: 'users:create', description: 'teste' });
+            await permissionsRepository.create({ code: 'permissions:create', description: 'teste' });
+            await permissionsRepository.create({ code: 'permissions:update', description: 'teste' });
+            await permissionsRepository.create({ code: 'permissions:delete', description: 'teste' });
+            await permissionsRepository.create({ code: 'departments:show', description: 'teste' });
+
+            const result = await permissionsService.list(1, 2, { code: 'permissions' });
+
+            expect(result.meta.total).toBe(3);
+            expect(result.meta.totalPages).toBe(2);
+            expect(result.permissions).toHaveLength(2); // Traz apenas 2 por causa do limite
         });
     });
 
@@ -215,6 +278,30 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             expect(updatedPermission).toHaveProperty('description');
             expect(updatedPermission.description).toBe('Atualiza permissão');
         });
+
+        it('não deve invalidar todos os usuários que possuem a permissão atualizada no cache quando o code não muda', async () => {
+            const createdPermission = await permissionsRepository.create({
+                code: 'permissions:create',
+                description: 'Criar permissões',
+            });
+
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
+            await permissionsService.update(createdPermission.id, { description: 'Atualiza permissão' });
+
+            expect(spyInvalidate).not.toHaveBeenCalled();
+        });
+
+        it('deve invalidar todos os usuários que possuem a permissão atualizada no cache quando o code muda', async () => {
+            const createdPermission = await permissionsRepository.create({
+                code: 'permissions:create',
+                description: 'Criar permissões',
+            });
+
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
+            await permissionsService.update(createdPermission.id, { code: 'permissions:update' });
+
+            expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
+        });
     });
 
     describe('[method]: #delete', () => {
@@ -241,6 +328,20 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
                 statusCode: 404,
                 message: 'Permissão não encontrada em nossa base de dados.',
             });
+        });
+
+        it('deve invalidar todos os usuários que possuem a permissão atualizada no cache', async () => {
+            const createdPermission = await permissionsRepository.create({
+                code: 'permissions:create',
+                description: 'Criar permissões',
+            });
+
+            const spyDelete = vi.spyOn(permissionsRepository, 'delete');
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
+            await permissionsService.delete(createdPermission.id);
+
+            expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
+            expect(spyDelete).toHaveBeenCalled();
         });
     });
 });

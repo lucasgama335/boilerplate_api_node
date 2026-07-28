@@ -24,3 +24,9 @@ export type DepartmentsFindManyResponse<T extends boolean> = {
     departments: T extends true ? DepartmentWithPermissions[] : Department[];
     total: number;
 };
+
+export interface DepartmentsFilters {
+    name?: string;
+    startDate?: Date;
+    endDate?: Date;
+}

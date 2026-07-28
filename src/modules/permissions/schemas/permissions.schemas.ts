@@ -1,3 +1,4 @@
+import { createPaginationSchema } from '@/app/schemas/common.schemas';
 import z from 'zod';
 
 export const permissionsCreateSchema = z.object({
@@ -21,3 +22,10 @@ export const permissionsUpdateSchema = z.object({
     description: z.string({ error: 'O campo description é obrigatório.' }).min(5, 'O campo description deve ao menos ter 5 caracteres').optional(),
     isActive: z.boolean().optional(),
 });
+
+export const permissionsListQuerySchema = createPaginationSchema().extend({
+    code: z.string().trim().optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+});
+export type PermissionsListQuery = z.infer<typeof permissionsListQuerySchema>;

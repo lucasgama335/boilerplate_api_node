@@ -1,16 +1,34 @@
 import { IPermissionsRepository } from '../../repositories/permissions.repository';
-import { CreatePermissionDTO, Permission, PermissionsFindMany, UpdatePermissionDTO } from '../../types/permissions.types';
+import { CreatePermissionDTO, Permission, PermissionsFilters, PermissionsFindMany, UpdatePermissionDTO } from '../../types/permissions.types';
 
 export class InMemoryPermissionsRepository implements IPermissionsRepository {
     private items: Permission[] = [];
 
-    async findMany(page: number, limit: number): Promise<PermissionsFindMany> {
+    async findMany(page: number, limit: number, filters?: PermissionsFilters): Promise<PermissionsFindMany> {
+        // APLICAR FILTROS ANTES DA PAGINAÇÃO
+        let filteredItems = [...this.items];
+
+        if (filters?.code) {
+            const searchCode = filters.code.toLowerCase();
+            filteredItems = filteredItems.filter((item) => item.code.toLowerCase().includes(searchCode));
+        }
+
+        if (filters?.startDate) {
+            filteredItems = filteredItems.filter((item) => item.createdAt >= filters.startDate!);
+        }
+
+        if (filters?.endDate) {
+            filteredItems = filteredItems.filter((item) => item.createdAt <= filters.endDate!);
+        }
+
+        // O total deve ser a quantidade de itens encontrados no filtro, não o total geral da tabela
+        const total = filteredItems.length;
+
+        // PAGINAÇÃO E ORDENAÇÃO
         const offset = (page - 1) * limit;
 
         // Aplica a paginação (Offset e Limit) usando o .slice()
-        const paginatedItems = this.items.slice(offset, offset + limit);
-
-        const total = this.items.length;
+        const paginatedItems = filteredItems.slice(offset, offset + limit);
 
         return {
             permissions: paginatedItems,
@@ -39,15 +57,12 @@ export class InMemoryPermissionsRepository implements IPermissionsRepository {
     }
 
     async update(id: string, data: UpdatePermissionDTO): Promise<Permission | null> {
-        const permission = this.items.find((item) => item.id === id);
-        if (permission) {
-            Object.assign(permission, {
-                ...data,
-                updatedAt: new Date(),
-            });
-            return permission;
-        }
-        return null;
+        const index = this.items.findIndex((item) => item.id === id);
+        if (index === -1) return null;
+
+        const updated: Permission = { ...this.items[index], ...data, updatedAt: new Date() };
+        this.items[index] = updated;
+        return updated;
     }
 
     async delete(id: string): Promise<void> {

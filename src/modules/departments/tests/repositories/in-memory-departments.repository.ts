@@ -1,6 +1,6 @@
 import { Permission } from '@/modules/permissions/types/permissions.types';
 import { IDepartmentsRepository } from '../../repositories/departments.repository';
-import { CreateDepartmentDTO, Department, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../../types/departments.types';
+import { CreateDepartmentDTO, Department, DepartmentsFilters, DepartmentsFindManyResponse, DepartmentWithPermissions, UpdateDepartmentDTO } from '../../types/departments.types';
 
 export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
     public items: Department[] = [];
@@ -31,15 +31,36 @@ export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
         };
     }
 
-    async findMany(page: number, limit: number, withPermissions: true): Promise<DepartmentsFindManyResponse<true>>;
-    async findMany(page: number, limit: number, withPermissions?: false): Promise<DepartmentsFindManyResponse<false>>;
-    async findMany<T extends boolean>(page: number, limit: number, withPermissions?: T): Promise<DepartmentsFindManyResponse<T>> {
-        const total = this.items.length;
+    async findMany(page: number, limit: number, withPermissions: true, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<true>>;
+    async findMany(page: number, limit: number, withPermissions?: false, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<false>>;
+    async findMany<T extends boolean>(page: number, limit: number, withPermissions?: T, filters?: DepartmentsFilters): Promise<DepartmentsFindManyResponse<T>> {
+        // APLICAR FILTROS ANTES DA PAGINAÇÃO
+        let filteredItems = [...this.items];
+
+        if (filters?.name) {
+            const searchName = filters.name.toLowerCase();
+            filteredItems = filteredItems.filter(
+                (item) => item.name.toLowerCase().includes(searchName), // Simulando o ILIKE do Postgres
+            );
+        }
+
+        if (filters?.startDate) {
+            filteredItems = filteredItems.filter((item) => item.createdAt >= filters.startDate!);
+        }
+
+        if (filters?.endDate) {
+            filteredItems = filteredItems.filter((item) => item.createdAt <= filters.endDate!);
+        }
+
+        // O total deve ser a quantidade de itens encontrados no filtro, não o total geral da tabela
+        const total = filteredItems.length;
+
+        // PAGINAÇÃO E ORDENAÇÃO
         const start = (page - 1) * limit;
         const end = start + limit;
 
         // Espelhando o comportamento do Drizzle (ordenado do mais recente para o mais antigo)
-        const sortedItems = [...this.items].reverse();
+        const sortedItems = filteredItems.reverse();
         const paginatedItems = sortedItems.slice(start, end);
 
         const isWithPermissions = Boolean(withPermissions);
@@ -51,6 +72,7 @@ export class InMemoryDepartmentsRepository implements IDepartmentsRepository {
             } as unknown as DepartmentsFindManyResponse<T>;
         }
 
+        // MAPEAMENTO DE PERMISSÕES
         const departmentsWithPermissions: DepartmentWithPermissions[] = paginatedItems.map((dep) => ({
             ...dep,
             permissions: this.departmentPermissionsMap.get(dep.id) || [],

@@ -3,31 +3,23 @@ import { departmentPermissions, departments, permissions, userDepartments, userP
 import { Department } from '@/modules/departments/types/departments.types';
 import { eq, getTableColumns, inArray } from 'drizzle-orm';
 import { union } from 'drizzle-orm/pg-core';
-import { CreateUserDTO, SafeUser, SafeUserWithDepartmentsAndPermissions, User } from '../types/users.types';
+import { CreateUserDTO, User, UserWithDepartmentsAndPermissions } from '../types/users.types';
 
 export interface IUsersRepository {
     checkDepartmentsExist(ids: string[]): Promise<boolean>;
 
-    // Como o tipo de retorno depende do parâmetro showUserPasswordHash precisamos fazer
-    // uma sobrecarga de função para garantir o resultado retornado em cada cenário.
-    findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
-    findByEmail(email: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
-    findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
+    findByEmail(email: string): Promise<User | null>;
+    findById(id: string): Promise<User | null>;
+    findByIdWithDetails(userId: string): Promise<UserWithDepartmentsAndPermissions | null>;
 
-    findById(id: string, showUserPasswordHash: true): Promise<User | null>;
-    findById(id: string, showUserPasswordHash?: false): Promise<SafeUser | null>;
-    findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | User | null>;
-
-    findByIdWithDetails(userId: string): Promise<SafeUserWithDepartmentsAndPermissions | null>;
-
-    create(data: CreateUserDTO, grantedById?: string): Promise<SafeUserWithDepartmentsAndPermissions>;
+    create(data: CreateUserDTO, grantedById?: string): Promise<UserWithDepartmentsAndPermissions>;
 
     isUserSuperAdmin(userId: string): Promise<boolean>;
 
     getTokensRevokedAt(userId: string): Promise<Date | null>;
     setTokensRevokedAt(userId: string, now: Date): Promise<void>;
 
-    updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<SafeUser>;
+    updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<User>;
     updateLastLogin(userId: string, date: Date): Promise<void>;
     confirmEmail(userId: string): Promise<void>;
 }
@@ -45,48 +37,21 @@ export class DrizzleUsersRepository implements IUsersRepository {
         return found.length === ids.length;
     }
 
-    async findByEmail(email: string, showUserPasswordHash: true): Promise<User | null>;
-    async findByEmail(email: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
-    async findByEmail(email: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
-        // Retorna um array, ex: [{ id: 1, email: '...' }] ou []
-        // Usamos a variável dentro de colchetes pq faz com que o javascript já retorne o primeiro item do array retornado tornando a variável o objeto em si.
+    async findByEmail(email: string): Promise<User | null> {
         const [result] = await this.db.select().from(users).where(eq(users.email, email));
-        if (!result) {
-            return null;
-        }
-
-        if (!showUserPasswordHash) {
-            const { passwordHash: _, ...userWithoutPassword } = result;
-            return (userWithoutPassword as SafeUser) || null;
-        }
-
-        return (result as User) || null;
+        return result || null;
     }
 
-    async findById(id: string, showUserPasswordHash: true): Promise<User | null>;
-    async findById(id: string, showUserPasswordHash?: boolean): Promise<SafeUser | null>;
-    async findById(id: string, showUserPasswordHash: boolean = false): Promise<SafeUser | User | null> {
+    async findById(id: string): Promise<User | null> {
         const [result] = await this.db.select().from(users).where(eq(users.id, id));
-
-        if (!result) {
-            return null;
-        }
-
-        if (!showUserPasswordHash) {
-            const { passwordHash: _, ...userWithoutPassword } = result;
-            return (userWithoutPassword as SafeUser) || null;
-        }
-
-        return (result as User) || null;
+        return result || null;
     }
 
-    async findByIdWithDetails(userId: string): Promise<SafeUserWithDepartmentsAndPermissions | null> {
-        // 1. Busca os dados brutos do usuário
+    async findByIdWithDetails(userId: string): Promise<UserWithDepartmentsAndPermissions | null> {
         const [user] = await this.db.select().from(users).where(eq(users.id, userId));
-
         if (!user) return null;
 
-        // 2. Busca departamentos e permissões concorrentemente (Performance)
+        // Busca departamentos e permissões concorrentemente (Performance)
         const [userDeps, effectivePermissions] = await Promise.all([
             // Query A: Busca os departamentos vinculados
             this.db
@@ -99,26 +64,22 @@ export class DrizzleUsersRepository implements IUsersRepository {
             this.getEffectivePermissionsObjects(userId, user.isSuperUser),
         ]);
 
-        // 3. Segurança: Omitindo a senha do retorno final
-        const { passwordHash: _, ...safeUser } = user;
-
         return {
-            ...safeUser,
+            ...user,
             departments: userDeps.map((d) => d.department),
             permissions: effectivePermissions,
-        } as SafeUserWithDepartmentsAndPermissions;
+        };
     }
 
-    async create(data: CreateUserDTO, grantedById?: string): Promise<SafeUserWithDepartmentsAndPermissions> {
+    async create(data: CreateUserDTO, grantedById?: string): Promise<UserWithDepartmentsAndPermissions> {
         return await this.db.transaction(async (tx) => {
             const { departments: departmentsList, ...userData } = data;
 
-            // 1. Cria o usuário
+            // Cria o usuário
             const [user] = await tx.insert(users).values(userData).returning();
 
             let depsListRet: Department[] = [];
-
-            // 2. Vincula o usuário aos departamentos
+            // Vincula o usuário aos departamentos
             if (departmentsList && departmentsList.length > 0) {
                 const departmentsToInsert = departmentsList.map((depId) => ({
                     departmentId: depId,
@@ -138,17 +99,14 @@ export class DrizzleUsersRepository implements IUsersRepository {
                 depsListRet = depsList.map((d) => d.department);
             }
 
-            // 3. Consulta de Permissões Efetivas (UNION) - Executada 100% no banco de dados
             const permissionCols = getTableColumns(permissions);
-
-            // 3A. Permissões Manuais (Neste momento do create estará vazia, mas a query serve de padrão)
+            // Permissões Manuais (Neste momento do create estará vazia, mas a query serve de padrão)
             const manualPerms = tx
                 .select(permissionCols)
                 .from(userPermissions)
                 .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
                 .where(eq(userPermissions.userId, user.id));
-
-            // 3B. Permissões Herdadas via Departamento
+            // Permissões Herdadas via Departamento
             const depPerms = tx
                 .select(permissionCols)
                 .from(userDepartments)
@@ -159,11 +117,8 @@ export class DrizzleUsersRepository implements IUsersRepository {
             // O UNION remove duplicatas automaticamente no nível do banco
             const effectivePermissions = await union(manualPerms, depPerms);
 
-            // 4. Segurança: Remove o hash
-            const { passwordHash: _, ...safeUser } = user;
-
             return {
-                ...safeUser,
+                ...user,
                 departments: depsListRet,
                 permissions: effectivePermissions, // Retorna os objetos completos deduplicados
             };
@@ -186,7 +141,7 @@ export class DrizzleUsersRepository implements IUsersRepository {
         await this.db.update(users).set({ tokensRevokedAt: date }).where(eq(users.id, userId));
     }
 
-    async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<SafeUser> {
+    async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<User> {
         const updateData: { passwordHash: string; isEmailConfirmed?: boolean } = {
             passwordHash: newPassword,
         };
@@ -199,8 +154,7 @@ export class DrizzleUsersRepository implements IUsersRepository {
 
         const [result] = await this.db.update(users).set(updateData).where(eq(users.id, userId)).returning();
 
-        const { passwordHash: _, ...userWithoutPassword } = result;
-        return userWithoutPassword as SafeUser;
+        return result;
     }
 
     async updateLastLogin(userId: string, date: Date): Promise<void> {

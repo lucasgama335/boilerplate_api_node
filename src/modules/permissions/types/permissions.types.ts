@@ -17,3 +17,9 @@ export type PaginatedPermissionsResponse = {
         totalPages: number;
     };
 };
+
+export interface PermissionsFilters {
+    code?: string;
+    startDate?: Date;
+    endDate?: Date;
+}

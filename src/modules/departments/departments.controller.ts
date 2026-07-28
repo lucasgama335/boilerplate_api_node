@@ -1,22 +1,23 @@
 import { Request, Response } from 'express';
 import { DepartmentsService } from './departments.service';
+import { DepartmentsListQuery } from './schemas/departments.schemas';
 
 export class DepartmentsController {
     constructor(private readonly departmentsService: DepartmentsService) {}
 
     list = async (req: Request, res: Response): Promise<Response> => {
-        const page = Number(req.query.page);
-        const limit = Number(req.query.limit);
+        const { page, limit, name, startDate, endDate } = req.query as unknown as DepartmentsListQuery;
+        const filters = { name, startDate, endDate };
 
         // const withPermissions = req.query.withPermissions === 'true' ? true : false; // (Futuramente se precisar podemos deixar a decisão de listar com as permissões para o frontend) - Lembrar que precisa refatorar o teste do controller caso implemente isso
 
-        const permissions = await this.departmentsService.list(page, limit);
+        const departments = await this.departmentsService.list(page, limit, undefined, filters);
 
-        return res.status(200).json(permissions);
+        return res.status(200).json(departments);
     };
 
     show = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
 
         const department = await this.departmentsService.show(id);
 
@@ -32,7 +33,7 @@ export class DepartmentsController {
     };
 
     update = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
         const data = { ...req.body, updatedById: req.user.id };
 
         const department = await this.departmentsService.update(id, data);
@@ -41,7 +42,7 @@ export class DepartmentsController {
     };
 
     delete = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
 
         const department = await this.departmentsService.delete(id);
 

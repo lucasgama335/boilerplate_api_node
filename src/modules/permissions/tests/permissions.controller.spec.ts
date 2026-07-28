@@ -36,31 +36,25 @@ describe('[UNIT TEST]: Módulo de Permissões - Controller', () => {
     });
 
     describe('[method]: #list', () => {
-        it('deve converter page e limit da query string para número antes de chamar o service', async () => {
-            mockReq.query = { page: '2', limit: '10' };
+        it('deve repassar os parâmetros de paginação e filtros extraídos pelo Zod para o service', async () => {
+            // Simulamos o objeto req.query JÁ tipado e convertido pelo middleware do Zod
+            mockReq.query = { page: 2 as any, limit: 10 as any };
+            mockPermissionsService.list.mockResolvedValue({ permissions: [], total: 0 });
 
             await permissionsController.list(mockReq as Request, mockRes as Response);
 
-            expect(mockPermissionsService.list).toHaveBeenCalledWith(2, 10);
+            // O service agora espera: page, limit, e o objeto de filtros
+            expect(mockPermissionsService.list).toHaveBeenCalledWith(2, 10, {
+                code: undefined,
+                startDate: undefined,
+                endDate: undefined,
+            });
         });
     });
 
     describe('[method]: #show', () => {
         it('deve converter id para um número, retornar status 200 e o corpo contendo a permissão achada', async () => {
             mockReq.params = { id: '123' };
-
-            const fakeFoundedPermission = { id: '123', code: 'users:create', description: 'Teste' };
-            mockPermissionsService.show.mockResolvedValue(fakeFoundedPermission);
-
-            await permissionsController.show(mockReq as Request, mockRes as Response);
-
-            expect(mockPermissionsService.show).toHaveBeenCalledWith('123');
-            expect(mockRes.status).toHaveBeenCalledWith(200);
-            expect(mockRes.json).toHaveBeenCalledWith({ permission: fakeFoundedPermission });
-        });
-
-        it('deve retornar status 200 e o corpo contendo a permissão achada mesmo que o params.id venha como array, pois somente o primeiro id será extraído', async () => {
-            mockReq.params = { id: ['123', '563'] };
 
             const fakeFoundedPermission = { id: '123', code: 'users:create', description: 'Teste' };
             mockPermissionsService.show.mockResolvedValue(fakeFoundedPermission);

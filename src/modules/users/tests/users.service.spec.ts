@@ -4,6 +4,7 @@ import { IHashProvider } from '@/app/infra/hashing/HashProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserService } from '../users.service';
+import { makeCreateUser, makeCreateUserDTO } from './factories/users.factory';
 import { InMemoryUsersRepository } from './repositories/in-memory-users.repository';
 
 describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
@@ -44,31 +45,11 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
 
     describe('[method]: #registerUser', () => {
         it('deve retornar AppError 409 se o e-mail a ser cadastrado já estiver sendo utilizado por outro usuário', async () => {
-            await usersRepository.create({
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'teste@example.com',
-                passwordHash: 'ARtr@8796',
-            });
+            const createdUser = await usersRepository.create(makeCreateUser());
+            const makeUserDTO = makeCreateUserDTO({ email: createdUser.email });
 
-            await expect(
-                usersService.registerUser({
-                    firstName: 'John',
-                    lastName: 'Doe Jr.',
-                    email: 'teste@example.com',
-                    password: 'ARtr@8626',
-                    passwordConfirmation: 'ARtr@8626',
-                }),
-            ).rejects.toBeInstanceOf(AppError);
-            await expect(
-                usersService.registerUser({
-                    firstName: 'John',
-                    lastName: 'Doe Jr.',
-                    email: 'teste@example.com',
-                    password: 'ARtr@8626',
-                    passwordConfirmation: 'ARtr@8626',
-                }),
-            ).rejects.toMatchObject({
+            await expect(usersService.registerUser(makeUserDTO)).rejects.toBeInstanceOf(AppError);
+            await expect(usersService.registerUser(makeUserDTO)).rejects.toMatchObject({
                 statusCode: 409,
                 message: 'Esse e-mail já está vinculado a uma conta cadastrada no sistema.',
             });
@@ -76,14 +57,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
 
         it('deve retornar AppError 400 quando no array de departamentos houver um id inexistente', async () => {
             usersRepository.validDepartmentIds = new Set(['department-1']);
-            const payload = {
-                firstName: 'João',
-                lastName: 'Silva',
-                email: 'teste@example.com',
-                password: 'ARtr@8626',
-                passwordConfirmation: 'ARtr@8626',
-                departments: ['dep-valido-123', 'dep-inexistente-999'],
-            };
+            const payload = makeCreateUserDTO({ departments: ['dep-valido-123', 'dep-inexistente-999'] });
 
             await expect(usersService.registerUser(payload)).rejects.toBeInstanceOf(AppError);
             await expect(usersService.registerUser(payload)).rejects.toMatchObject({
@@ -94,22 +68,14 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
 
         it('deve criar o usuário com sucesso quando todos os departamentos informados existirem e chamar a função de geração de token para confirmação de e-mail', async () => {
             usersRepository.validDepartmentIds = new Set(['dep-1', 'dep-2']);
-
-            const payload = {
-                firstName: 'João',
-                lastName: 'Silva',
-                email: 'teste@example.com',
-                password: 'ARtr@8626',
-                passwordConfirmation: 'ARtr@8626',
-                departments: ['dep-1', 'dep-2'],
-            };
+            const payload = makeCreateUserDTO({ departments: ['dep-1', 'dep-2'] });
 
             const spyFunc = vi.spyOn(tokenProvider, 'generateEmailConfirmationToken');
             const result = await usersService.registerUser(payload);
 
             expect(spyFunc).toHaveBeenCalled();
             expect(result).toHaveProperty('id');
-            expect(result.email).toBe('teste@example.com');
+            expect(result.email).toBe(payload.email);
 
             const savedDepartments = usersRepository.userDepartmentsMap.get(result.id);
             expect(savedDepartments).toEqual(['dep-1', 'dep-2']);
@@ -153,13 +119,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
         });
 
         it('deve retornar AppError 400 se o e-mail do usuário já estiver confirmado', async () => {
-            const createdUser = await usersRepository.create({
-                firstName: 'Ana',
-                lastName: 'Souza',
-                email: 'ana@example.com',
-                passwordHash: 'hash',
-            });
-
+            const createdUser = await usersRepository.create(makeCreateUser());
             await usersRepository.confirmEmail(createdUser.id);
             vi.spyOn(tokenProvider, 'decode').mockReturnValue({
                 sub: createdUser.id,
@@ -174,12 +134,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
         });
 
         it('deve retornar AppError 401 se a assinatura do token for inválida ou o token estiver expirado', async () => {
-            const createdUser = await usersRepository.create({
-                firstName: 'Ana',
-                lastName: 'Souza',
-                email: 'ana@example.com',
-                passwordHash: 'hash',
-            });
+            const createdUser = await usersRepository.create(makeCreateUser());
 
             vi.spyOn(tokenProvider, 'decode').mockReturnValue({
                 sub: createdUser.id,
@@ -196,12 +151,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
         });
 
         it('deve confirmar o e-mail do usuário com sucesso quando o token e a assinatura forem totalmente válidos', async () => {
-            const createdUser = await usersRepository.create({
-                firstName: 'Ana',
-                lastName: 'Souza',
-                email: 'ana-sucesso@example.com',
-                passwordHash: 'hash',
-            });
+            const createdUser = await usersRepository.create(makeCreateUser());
 
             vi.spyOn(tokenProvider, 'decode').mockReturnValue({
                 sub: createdUser.id,
@@ -210,7 +160,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
             vi.spyOn(tokenProvider, 'verifyEmailConfirmationToken').mockReturnValue({} as any);
             await usersService.confirmEmail('token-100-porcento-valido');
 
-            const updatedUser = await usersRepository.findById(createdUser.id, true);
+            const updatedUser = await usersRepository.findById(createdUser.id);
             expect(updatedUser?.isEmailConfirmed).toBe(true);
         });
     });
@@ -223,13 +173,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
         });
 
         it('deve retornar sucesso silencioso caso o usuário já tenha o e-mail confirmado', async () => {
-            const createdUser = await usersRepository.create({
-                firstName: 'Ana',
-                lastName: 'Souza',
-                email: 'ana-sucesso@example.com',
-                passwordHash: 'hash',
-                isEmailConfirmed: true,
-            });
+            const createdUser = await usersRepository.create(makeCreateUser());
 
             const result = await usersService.resendConfirmEmail(createdUser.email);
 
@@ -237,12 +181,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Service', () => {
         });
 
         it('deve chamar a função generateEmailConfirmationToken para gerar o novo token de confirmação do usuário', async () => {
-            const createdUser = await usersRepository.create({
-                firstName: 'Ana',
-                lastName: 'Souza',
-                email: 'ana-sucesso@example.com',
-                passwordHash: 'hash',
-            });
+            const createdUser = await usersRepository.create(makeCreateUser());
 
             const spyFunc = vi.spyOn(tokenProvider, 'generateEmailConfirmationToken');
             await usersService.resendConfirmEmail(createdUser.email);

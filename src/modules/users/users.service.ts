@@ -3,7 +3,7 @@ import { IHashProvider } from '@/app/infra/hashing/HashProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
 import { env } from '@/env';
-import { SafeUser } from '@/modules/users/types/users.types';
+import { SafeUser, toSafeUser } from '@/modules/users/types/users.types';
 import { IUsersRepository } from './repositories/users.repository';
 import { RegisterUserDTO } from './schemas/users.schemas';
 
@@ -19,20 +19,19 @@ export class UserService {
         if (!user) {
             throw new AppError('Usuário não encontrado.', 404);
         }
-        return user;
+
+        const safeUser = toSafeUser(user);
+        return safeUser;
     }
 
     async registerUser(data: RegisterUserDTO): Promise<SafeUser> {
-        // 🛡️ CORREÇÃO DE SEGURANÇA (Anti-Timing Attack):
-        // Executamos o hash da senha ANTES de ir ao banco de dados.
-        // Isso "paga o pedágio" da lentidão do Argon2 de forma incondicional,
-        // mascarando para o atacante se o e-mail já existe ou não.
-        const hashedPassword = await this.hashProvider.hash(data.password);
+        const { password: rawPassword, ...userData } = data;
 
         const userAlreadyExists = await this.userRepository.findByEmail(data.email);
         if (userAlreadyExists) {
             throw new AppError('Esse e-mail já está vinculado a uma conta cadastrada no sistema.', 409);
         }
+
         if (data.departments && data.departments.length > 0) {
             const departmentsExists = await this.userRepository.checkDepartmentsExist(data.departments);
             if (!departmentsExists) {
@@ -40,15 +39,13 @@ export class UserService {
             }
         }
 
-        // Extraímos o 'password' e agrupamos o resto das propriedades na variável 'userData'
-        const { password: _, ...userData } = data;
+        const hashedPassword = await this.hashProvider.hash(rawPassword); // 🛡️ Segurança contra time attacking
 
+        // Registra o usuário no banco e gera o token de confirmação de e-mail
         const createdUser = await this.userRepository.create({
             ...userData,
             passwordHash: hashedPassword,
         });
-
-        // Gera o token stateless de confirmação
         const confirmationToken = this.tokenProvider.generateEmailConfirmationToken(createdUser.id, false);
 
         if (env.NODE_ENV === 'development') {
@@ -56,11 +53,11 @@ export class UserService {
         }
         // TODO: Enviar por e-mail via EmailProvider
 
-        return createdUser;
+        return toSafeUser(createdUser);
     }
 
     async confirmEmail(confirmEmailToken: string): Promise<void> {
-        // 1. Decodifica levemente apenas para checar o purpose ou extrair o ID com segurança após o verify
+        // Decodifica levemente apenas para checar o purpose ou extrair o ID com segurança após o verify
         let decoded: { sub?: string; purpose?: string };
         try {
             decoded = this.tokenProvider.decode(confirmEmailToken);
@@ -72,7 +69,7 @@ export class UserService {
             throw new AppError('Token de confirmação de e-mail inválido.', 400);
         }
 
-        const user = await this.userRepository.findById(decoded.sub, true);
+        const user = await this.userRepository.findById(decoded.sub);
         if (!user) {
             throw new AppError('Usuário não encontrado.', 404);
         }
@@ -81,7 +78,7 @@ export class UserService {
             throw new AppError('Este e-mail já foi confirmado anteriormente.', 400);
         }
 
-        // 2. Valida assinatura e expiração de forma segura usando o segredo dinâmico do banco
+        // Valida assinatura e expiração de forma segura usando o segredo dinâmico do banco
         try {
             this.tokenProvider.verifyEmailConfirmationToken(confirmEmailToken, user.isEmailConfirmed);
         } catch {
@@ -92,10 +89,9 @@ export class UserService {
     }
 
     async resendConfirmEmail(email: string): Promise<void> {
-        const user = await this.userRepository.findByEmail(email, true);
+        const user = await this.userRepository.findByEmail(email);
 
-        // Mesmo raciocínio do createResetPassword: paga o custo do hash sempre.
-        await simulateHashDelay(this.hashProvider);
+        await simulateHashDelay(this.hashProvider); // 🛡️ Segurança contra time attacking
 
         if (!user || user.isEmailConfirmed) {
             // 🛡️ Se não existe OU já foi confirmado, retorna sucesso silencioso —
@@ -103,8 +99,7 @@ export class UserService {
             return;
         }
 
-        const { id, isEmailConfirmed } = user;
-        const resendedEmail = this.tokenProvider.generateEmailConfirmationToken(id, isEmailConfirmed);
+        const resendedEmail = this.tokenProvider.generateEmailConfirmationToken(user.id, user.isEmailConfirmed);
         if (env.NODE_ENV === 'development') {
             console.log(`🛡️ [RESEND CONFIRM EMAIL - TOKEN]: ${resendedEmail}`);
         }

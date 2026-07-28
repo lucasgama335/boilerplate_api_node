@@ -1,7 +1,7 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
 import { IDepartmentsRepository } from './repositories/departments.repository';
-import { CreateDepartmentDTO, DepartmentWithPermissions, UpdateDepartmentDTO } from './types/departments.types';
+import { CreateDepartmentDTO, DepartmentsFilters, DepartmentWithPermissions, UpdateDepartmentDTO } from './types/departments.types';
 
 export class DepartmentsService {
     constructor(
@@ -9,9 +9,9 @@ export class DepartmentsService {
         private readonly userPermissionsProvider: IUserPermissionsProvider,
     ) {}
 
-    async list<T extends boolean>(page: number, limit: number, withPermissions?: T) {
+    async list<T extends boolean>(page: number, limit: number, withPermissions?: T, filters?: DepartmentsFilters) {
         // O TypeScript sabe exatamente se departments será Department[] ou DepartmentWithPermissions[]
-        const { departments, total } = await this.departmentsRepository.findMany(page, limit, withPermissions);
+        const { departments, total } = await this.departmentsRepository.findMany(page, limit, withPermissions, filters);
 
         const totalPages = Math.ceil(total / limit) || 1;
 

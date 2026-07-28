@@ -5,7 +5,7 @@ export class UserAccessController {
     constructor(private readonly userAccessService: UserAccessService) {}
 
     create = async (req: Request, res: Response, _next: NextFunction): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
         const grantedById = req.user.id;
         const { permissions } = req.body;
 

@@ -2,14 +2,14 @@ import { authMiddleware, authorize } from '@/app/composition-root';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
 import { validateParamsMiddleware } from '@/app/http/middlewares/validate-params-middleware';
 import { validateQueryMiddleware } from '@/app/http/middlewares/validate-query-middleware';
-import { createPaginationSchema, idParamSchema } from '@/app/schemas/common.schemas';
+import { idParamSchema } from '@/app/schemas/common.schemas';
 import { Router } from 'express';
 import { departmentsController } from './departments.composition';
-import { departmentsCreateSchema, departmentsUpdateSchema } from './schemas/departments.schemas';
+import { departmentsCreateSchema, departmentsListQuerySchema, departmentsUpdateSchema } from './schemas/departments.schemas';
 
 export const departmentsRoutes = Router();
 
-departmentsRoutes.get('/', authMiddleware, authorize(['departments:show']), validateQueryMiddleware(createPaginationSchema()), departmentsController.list);
+departmentsRoutes.get('/', authMiddleware, authorize(['departments:show']), validateQueryMiddleware(departmentsListQuerySchema), departmentsController.list);
 departmentsRoutes.get('/:id', authMiddleware, authorize(['departments:show']), validateParamsMiddleware(idParamSchema), departmentsController.show);
 departmentsRoutes.post('/', authMiddleware, authorize(['departments:create']), validateDataMiddleware(departmentsCreateSchema), departmentsController.create);
 departmentsRoutes.patch(

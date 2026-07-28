@@ -11,27 +11,27 @@ import {
     resetPasswordRequestIpLimiter,
 } from '@/app/http/middlewares/rate-limiter.middleware';
 import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
-import { authenticateController } from './authentication.composition';
-import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, logouAllDevicesSchema, resetPasswordSchema } from './schemas/authentication.schemas';
+import { authenticationController } from './authentication.composition';
+import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, logoutAllDevicesSchema, resetPasswordSchema } from './schemas/authentication.schemas';
 
 export const authRoutes = Router();
 
-authRoutes.post('/login', loginRequestIpLimiter, loginRequestEmailLimiter, validateDataMiddleware(authenticateUserSchema), authenticateController.loginUser);
-authRoutes.post('/refresh', refreshRequestIpLimiter, authenticateController.refreshToken);
+authRoutes.post('/login', loginRequestIpLimiter, loginRequestEmailLimiter, validateDataMiddleware(authenticateUserSchema), authenticationController.loginUser);
+authRoutes.post('/refresh', refreshRequestIpLimiter, authenticationController.refreshToken);
 authRoutes.post(
     '/forgot-password',
     forgotPasswordRequestIpLimiter,
     forgotPasswordRequestEmailLimiter,
     validateDataMiddleware(forgotPasswordSchema),
-    authenticateController.forgotPassword,
+    authenticationController.forgotPassword,
 );
-authRoutes.post('/reset-password', resetPasswordRequestIpLimiter, validateDataMiddleware(resetPasswordSchema), authenticateController.resetPassword);
+authRoutes.post('/reset-password', resetPasswordRequestIpLimiter, validateDataMiddleware(resetPasswordSchema), authenticationController.resetPassword);
 authRoutes.post(
     '/change-password',
     authMiddleware,
     changePasswordRequestIdLimiter,
     validateDataMiddleware(changePasswordUserSchema),
-    authenticateController.changeAuthenthicatedUserPassword,
+    authenticationController.changeAuthenticatedUserPassword,
 );
-authRoutes.post('/logout', authMiddleware, authenticateController.logout);
-authRoutes.post('/logout-all-devices', authMiddleware, validateDataMiddleware(logouAllDevicesSchema), authenticateController.revokeAllUserTokens);
+authRoutes.post('/logout', authMiddleware, authenticationController.logout);
+authRoutes.post('/logout-all-devices', authMiddleware, validateDataMiddleware(logoutAllDevicesSchema), authenticationController.revokeAllUserTokens);

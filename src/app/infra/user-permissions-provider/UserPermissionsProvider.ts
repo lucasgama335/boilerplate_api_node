@@ -9,6 +9,7 @@ export interface IUserPermissionsProvider {
     // Apaga a chave do usuário no Redis para forçar
     // uma nova ida ao banco na próxima requisição.
     invalidatePermissionsByDepartment(departmentId: string): Promise<void>;
+    invalidatePermissionsByPermission(permissionId: string): Promise<void>;
     invalidatePermissions(userId: string): Promise<void>;
 }
 
@@ -60,6 +61,14 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
             for (const user of usersTemps) {
                 await this.invalidatePermissions(user.id);
             }
+        }
+    }
+
+    async invalidatePermissionsByPermission(permissionId: string): Promise<void> {
+        const affectedUserIds = await this.userPermissionsRepository.getUserIdsByPermissionId(permissionId);
+
+        for (const userId of affectedUserIds) {
+            await this.invalidatePermissions(userId);
         }
     }
 

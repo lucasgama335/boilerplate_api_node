@@ -1,10 +1,10 @@
 import { DatabaseType } from '@/database';
 import { permissions } from '@/database/schema';
-import { count, desc, eq } from 'drizzle-orm';
-import { CreatePermissionDTO, Permission, PermissionsFindMany, UpdatePermissionDTO } from '../types/permissions.types';
+import { and, count, desc, eq, gte, ilike, lte } from 'drizzle-orm';
+import { CreatePermissionDTO, Permission, PermissionsFilters, PermissionsFindMany, UpdatePermissionDTO } from '../types/permissions.types';
 
 export interface IPermissionsRepository {
-    findMany(page: number, limit: number): Promise<PermissionsFindMany>;
+    findMany(page: number, limit: number, filters?: PermissionsFilters): Promise<PermissionsFindMany>;
     findById(id: string): Promise<Permission | null>;
     findByCode(code: string): Promise<Permission | null>;
     create(data: CreatePermissionDTO): Promise<Permission>;
@@ -15,18 +15,31 @@ export interface IPermissionsRepository {
 export class DrizzlePermissionsRepository implements IPermissionsRepository {
     constructor(private readonly db: DatabaseType) {}
 
-    async findMany(page: number, limit: number): Promise<PermissionsFindMany> {
+    async findMany(page: number, limit: number, filters?: PermissionsFilters): Promise<PermissionsFindMany> {
         const offset = (page - 1) * limit;
+
+        // CONSTRÓI AS CONDIÇÕES DINAMICAMENTE
+        const conditions = [];
+
+        if (filters?.code) {
+            // ilike faz a busca ignorando maiúsculas/minúsculas (ex: %Vendas%)
+            conditions.push(ilike(permissions.code, `%${filters.code}%`));
+        }
+        if (filters?.startDate) {
+            conditions.push(gte(permissions.createdAt, filters.startDate));
+        }
+        if (filters?.endDate) {
+            // Se quiser que pegue até o final do dia: lte(departments.createdAt, dataNoFinalDoDia)
+            conditions.push(lte(permissions.createdAt, filters.endDate));
+        }
+
+        // Se houver condições, junta com AND. Se não, fica undefined (sem WHERE).
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
         // 🛡️ Otimização: Executa o count e a busca de itens em paralelo no banco
         const [countResult, items] = await Promise.all([
-            this.db.select({ count: count() }).from(permissions),
-            this.db
-                .select()
-                .from(permissions)
-                .orderBy(desc(permissions.createdAt)) // 👈 Ordenação estável (mais recentes primeiro)
-                .limit(limit)
-                .offset(offset),
+            this.db.select({ count: count() }).from(permissions).where(whereClause),
+            this.db.select().from(permissions).where(whereClause).orderBy(desc(permissions.createdAt)).limit(limit).offset(offset),
         ]);
 
         const total = Number(countResult[0]?.count ?? 0);

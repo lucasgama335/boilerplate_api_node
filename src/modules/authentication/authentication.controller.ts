@@ -3,37 +3,37 @@ import { logger } from '@/app/utils/logger';
 import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
 import { env } from '@/env';
 import { Request, Response } from 'express';
-import { AuthenticationUserService } from './authentication.service';
+import { AuthenticationService } from './authentication.service';
 
-export class AuthenticateController {
-    constructor(private readonly authenticationService: AuthenticationUserService) {}
+export class AuthenticationController {
+    constructor(private readonly authenticationService: AuthenticationService) {}
 
     loginUser = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { user, token, refreshToken, refreshTokenExpiresAt } = await this.authenticationService.loginUser({ email, password }, ipAddress, userAgentString);
+        const { user, accessToken, refreshToken, refreshTokenExpiresAt } = await this.authenticationService.loginUser({ email, password }, ipAddress, userAgentString);
         setRefreshTokenCookie(res, refreshToken, refreshTokenExpiresAt);
 
-        return res.status(200).json({ user, token });
+        return res.status(200).json({ user, accessToken });
     };
 
     refreshToken = async (req: Request, res: Response): Promise<Response> => {
-        const refreshToken = req.cookies?.refreshToken;
-        if (!refreshToken) {
+        const userSessionRefreshToken = req.cookies?.refreshToken;
+        if (!userSessionRefreshToken) {
             throw new AppError('Refresh token não encontrado.', 401);
         }
 
         const ipAddress = req.ip || req.socket.remoteAddress || '0.0.0.0';
         const userAgentString = req.headers['user-agent'] ?? 'unknown';
 
-        const { accessToken, newRawRefreshToken, expiresAt } = await this.authenticationService.refresh(refreshToken, ipAddress, userAgentString);
+        const { accessToken, refreshToken, expiresAt } = await this.authenticationService.refresh(userSessionRefreshToken, ipAddress, userAgentString);
 
         // Dentro do grace period a rotação é suprimida (newRawRefreshToken vem null) —
         // não mexemos no cookie existente, o cliente mantém o refresh token que já tinha.
-        if (newRawRefreshToken && expiresAt) {
-            setRefreshTokenCookie(res, newRawRefreshToken, expiresAt);
+        if (refreshToken && expiresAt) {
+            setRefreshTokenCookie(res, refreshToken, expiresAt);
         }
 
         return res.status(200).json({ accessToken });
@@ -70,12 +70,12 @@ export class AuthenticateController {
         return res.status(200).json({ message: 'Operação realizada com sucesso.' });
     };
 
-    changeAuthenthicatedUserPassword = async (req: Request, res: Response): Promise<Response> => {
+    changeAuthenticatedUserPassword = async (req: Request, res: Response): Promise<Response> => {
         const userId = req.user.id;
         const refreshToken = req.cookies?.refreshToken;
         const { oldPassword, newPassword } = req.body;
 
-        const user = await this.authenticationService.changeAuthenthicatedUserPassword(userId, newPassword, refreshToken, oldPassword);
+        const user = await this.authenticationService.changeAuthenticatedUserPassword(userId, newPassword, refreshToken, oldPassword);
 
         return res.status(200).json(user);
     };

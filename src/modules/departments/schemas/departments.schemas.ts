@@ -1,3 +1,4 @@
+import { createPaginationSchema } from '@/app/schemas/common.schemas';
 import z from 'zod';
 
 export const departmentsCreateSchema = z.object({
@@ -29,3 +30,10 @@ export const departmentsUpdateSchema = z.object({
 
     permissions: z.array(z.uuid('Cada ID de permissão deve ser um UUID válido.')).optional(),
 });
+
+export const departmentsListQuerySchema = createPaginationSchema().extend({
+    name: z.string().trim().optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+});
+export type DepartmentsListQuery = z.infer<typeof departmentsListQuerySchema>;

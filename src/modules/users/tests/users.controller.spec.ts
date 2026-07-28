@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UsersController } from '../users.controller';
 import { UserService } from '../users.service';
+import { makeCreateUser, makeCreateUserDTO } from './factories/users.factory';
 
 describe('[UNIT TEST]: Módulo de Usuários - Controller', () => {
     let usersController: UsersController;
@@ -40,14 +41,7 @@ describe('[UNIT TEST]: Módulo de Usuários - Controller', () => {
         it('deve retornar o usuário criado', async () => {
             mockReq.body = { firstName: 'John', lastName: 'Doe', email: 'example@gmail.com', password: 'confirm@Password123', paswwordConfirmation: 'confirm@Password123' };
 
-            const fakeUser = {
-                id: '123',
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'example@gmail.com',
-                password: 'confirm@Password123',
-                paswwordConfirmation: 'confirm@Password123',
-            };
+            const fakeUser = makeCreateUserDTO();
             mockUsersService.registerUser.mockResolvedValue(fakeUser);
 
             await usersController.registerUser(mockReq as Request, mockRes as Response);
@@ -60,12 +54,12 @@ describe('[UNIT TEST]: Módulo de Usuários - Controller', () => {
 
     describe('[method]: #getProfile', () => {
         it('deve retornar status 200 e o perfil do usuário logado', async () => {
-            const fakeProfile = { id: 'user-123', firstName: 'John', lastName: 'Doe', email: 'john@example.com' };
+            const fakeProfile = makeCreateUser({ id: 'user-123' });
             mockUsersService.getProfile.mockResolvedValue(fakeProfile);
 
             await usersController.showProfile(mockReq as Request, mockRes as Response);
 
-            expect(mockUsersService.getProfile).toHaveBeenCalledWith('user-123');
+            expect(mockUsersService.getProfile).toHaveBeenCalledWith(fakeProfile.id);
             expect(mockRes.status).toHaveBeenCalledWith(200);
             expect(mockRes.json).toHaveBeenCalledWith(fakeProfile);
         });
@@ -73,27 +67,14 @@ describe('[UNIT TEST]: Módulo de Usuários - Controller', () => {
 
     describe('[method]: #show', () => {
         it('deve extrair o id da rota, retornar status 200 e o corpo contendo o usuário achado', async () => {
-            mockReq.params = { id: '123' };
+            const fakeUser = makeCreateUser();
 
-            const fakeUser = { id: '123', firstName: 'John', lastName: 'Doe', email: 'john@example.com' };
+            mockReq.params = { id: fakeUser.id as string };
             mockUsersService.getProfile.mockResolvedValue(fakeUser);
 
             await usersController.show(mockReq as Request, mockRes as Response);
 
-            expect(mockUsersService.getProfile).toHaveBeenCalledWith('123');
-            expect(mockRes.status).toHaveBeenCalledWith(200);
-            expect(mockRes.json).toHaveBeenCalledWith(fakeUser);
-        });
-
-        it('deve retornar status 200 e o corpo contendo o usuário achado mesmo que o params.id venha como array, pois somente o primeiro id será extraído', async () => {
-            mockReq.params = { id: ['123', '563'] };
-
-            const fakeUser = { id: '123', firstName: 'John', lastName: 'Doe', email: 'john@example.com' };
-            mockUsersService.getProfile.mockResolvedValue(fakeUser);
-
-            await usersController.show(mockReq as Request, mockRes as Response);
-
-            expect(mockUsersService.getProfile).toHaveBeenCalledWith('123');
+            expect(mockUsersService.getProfile).toHaveBeenCalledWith(fakeUser.id);
             expect(mockRes.status).toHaveBeenCalledWith(200);
             expect(mockRes.json).toHaveBeenCalledWith(fakeUser);
         });

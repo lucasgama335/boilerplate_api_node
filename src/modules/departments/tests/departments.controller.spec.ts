@@ -37,13 +37,19 @@ describe('[UNIT TEST]: Módulo de Departamentos - Controller', () => {
     });
 
     describe('[method]: #list', () => {
-        it('deve converter page e limit da query string para número, antes de chamar o service', async () => {
-            mockReq.query = { page: '2', limit: '15' };
+        it('deve repassar os parâmetros de paginação e filtros extraídos pelo Zod para o service', async () => {
+            // Simulamos o objeto req.query JÁ tipado e convertido pelo middleware do Zod
+            mockReq.query = { page: 2 as any, limit: 15 as any, name: 'TI' as any };
             mockDepartmentsService.list.mockResolvedValue({ departments: [], total: 0 });
 
             await departmentsController.list(mockReq as Request, mockRes as Response);
 
-            expect(mockDepartmentsService.list).toHaveBeenCalledWith(2, 15);
+            // O service agora espera: page, limit, withPermissions (undefined), e o objeto de filtros
+            expect(mockDepartmentsService.list).toHaveBeenCalledWith(2, 15, undefined, {
+                name: 'TI',
+                startDate: undefined,
+                endDate: undefined,
+            });
             expect(mockRes.status).toHaveBeenCalledWith(200);
         });
     });
@@ -51,19 +57,6 @@ describe('[UNIT TEST]: Módulo de Departamentos - Controller', () => {
     describe('[method]: #show', () => {
         it('deve converter id para um número, retornar status 200 e o corpo contendo o departamento achado', async () => {
             mockReq.params = { id: '123' };
-
-            const fakeFoundedDepartment = { name: 'teste departamento', description: 'teste de descrição' };
-            mockDepartmentsService.show.mockResolvedValue(fakeFoundedDepartment);
-
-            await departmentsController.show(mockReq as Request, mockRes as Response);
-
-            expect(mockDepartmentsService.show).toHaveBeenCalledWith('123');
-            expect(mockRes.status).toHaveBeenCalledWith(200);
-            expect(mockRes.json).toHaveBeenCalledWith({ department: fakeFoundedDepartment });
-        });
-
-        it('deve retornar status 200 e o corpo contendo o departamento achado mesmo que o params.id venha como array, pois somente o primeiro id será extraído', async () => {
-            mockReq.params = { id: ['123', '563'] };
 
             const fakeFoundedDepartment = { name: 'teste departamento', description: 'teste de descrição' };
             mockDepartmentsService.show.mockResolvedValue(fakeFoundedDepartment);

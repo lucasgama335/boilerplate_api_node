@@ -2,10 +2,10 @@ import { geolocationProvider, hashProvider, tokenProvider, userAgentProvider, us
 
 import { authRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
 import { loginAttemptRepository, refreshTokenRepository, userRepository } from '@/database/repositories';
-import { AuthenticateController } from './authentication.controller';
-import { AuthenticationUserService } from './authentication.service';
+import { AuthenticationController } from './authentication.controller';
+import { AuthenticationService } from './authentication.service';
 
-const authenticateService = new AuthenticationUserService(
+const authenticateService = new AuthenticationService(
     userRepository,
     refreshTokenRepository,
     loginAttemptRepository,
@@ -17,4 +17,4 @@ const authenticateService = new AuthenticationUserService(
     authRateLimiter,
 );
 
-export const authenticateController = new AuthenticateController(authenticateService);
+export const authenticationController = new AuthenticationController(authenticateService);

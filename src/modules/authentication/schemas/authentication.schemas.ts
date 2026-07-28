@@ -55,7 +55,7 @@ export const changePasswordUserSchema = z
         path: ['newPassword'],
     });
 
-export const logouAllDevicesSchema = z.object({
+export const logoutAllDevicesSchema = z.object({
     keepCurrentSession: z.boolean().default(false),
 });
 

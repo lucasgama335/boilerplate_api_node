@@ -16,6 +16,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
         mockUserPermissionsProvider = {
             getPermissions: vi.fn(),
             invalidatePermissionsByDepartment: vi.fn(),
+            invalidatePermissionsByPermission: vi.fn(),
             invalidatePermissions: vi.fn(),
         };
 
@@ -92,6 +93,61 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             expect(result.departments[0]).toHaveProperty('permissions');
             expect((result.departments[0] as any).permissions).toHaveLength(1);
             expect((result.departments[0] as any).permissions[0].id).toBe('perm-1');
+        });
+
+        it('deve filtrar os departamentos pelo nome ignorando maiúsculas e minúsculas', async () => {
+            await departmentsRepository.create({ name: 'Recursos Humanos' });
+            await departmentsRepository.create({ name: 'Tecnologia' });
+            await departmentsRepository.create({ name: 'Tecnologia da Informação' });
+
+            // Buscando por "tecno" (minúsculo)
+            const result = await departmentsService.list(1, 10, false, { name: 'tecno' });
+
+            expect(result.departments).toHaveLength(2); // TI e Tecnologia da Informação
+            expect(result.meta.total).toBe(2);
+        });
+
+        it('deve filtrar os departamentos por intervalo de data de criação', async () => {
+            vi.useFakeTimers();
+
+            vi.setSystemTime(new Date('2026-01-01T10:00:00.000Z'));
+            await departmentsRepository.create({ name: 'RH' });
+
+            vi.setSystemTime(new Date('2026-06-01T10:00:00.000Z'));
+            await departmentsRepository.create({ name: 'TI' });
+
+            vi.setSystemTime(new Date('2026-12-01T10:00:00.000Z'));
+            await departmentsRepository.create({ name: 'Financeiro' });
+
+            vi.useRealTimers();
+
+            // Filtrando apenas os que foram criados de Fevereiro a Novembro de 2026
+            const filters = {
+                startDate: new Date('2026-02-01T00:00:00.000Z'),
+                endDate: new Date('2026-11-30T23:59:59.000Z'),
+            };
+
+            const result = await departmentsService.list(1, 10, false, filters);
+
+            expect(result.departments).toHaveLength(1);
+            expect(result.departments[0].name).toBe('TI');
+            expect(result.meta.total).toBe(1);
+        });
+
+        it('deve recalcular o totalPages corretamente quando um filtro é aplicado', async () => {
+            await departmentsRepository.create({ name: 'TI Suporte' });
+            await departmentsRepository.create({ name: 'TI Infraestrutura' });
+            await departmentsRepository.create({ name: 'TI Desenvolvimento' });
+            await departmentsRepository.create({ name: 'RH' });
+            await departmentsRepository.create({ name: 'Financeiro' });
+
+            // Buscando por "TI" com limite de 2 por página.
+            // Como existem 3 "TI"s, o totalPages deve ser 2 (duas páginas para caber os 3 resultados).
+            const result = await departmentsService.list(1, 2, false, { name: 'TI' });
+
+            expect(result.meta.total).toBe(3);
+            expect(result.meta.totalPages).toBe(2);
+            expect(result.departments).toHaveLength(2); // Traz apenas 2 por causa do limite
         });
     });
 

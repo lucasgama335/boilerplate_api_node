@@ -21,7 +21,7 @@ export class UsersController {
     };
 
     show = async (req: Request, res: Response): Promise<Response> => {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { id } = req.params as { id: string };
 
         const user = await this.userService.getProfile(id);
 

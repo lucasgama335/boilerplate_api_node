@@ -1,7 +1,7 @@
 import { AppError } from '@/app/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
 import { IUsersRepository } from '../users/repositories/users.repository';
-import { SafeUserWithPermissions } from '../users/types/users.types';
+import { SafeUserWithPermissions, toSafeUser } from '../users/types/users.types';
 import { IUserPermissionsRepository } from './repositories/user-permissions.repository';
 
 export class UserAccessService {
@@ -31,6 +31,6 @@ export class UserAccessService {
         const userWithPermissions = await this.userPermissionsRepository.setPermissions(id, permissions, grantedById);
         await this.userPermissionsProvider.invalidatePermissions(id);
 
-        return userWithPermissions;
+        return toSafeUser(userWithPermissions);
     }
 }
