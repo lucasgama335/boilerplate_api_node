@@ -1,73 +1,55 @@
-# 🚀 Node.js Secure Boilerplate API
+# API Backend - TypeScript & Express
 
-Um boilerplate de API Node.js pronto para produção, construído com foco extremo em **Segurança**, **Performance** e **Arquitetura Limpa**.
-
-Ideal para iniciar novos projetos sem precisar reescrever fluxos complexos de autenticação, proteção contra ataques ou configurações de banco de dados.
-
-## ✨ Funcionalidades em Destaque
-
-- **Autenticação Robusta:** Sistema completo de Login e Registro com JWT (Access Token) e Refresh Tokens rotativos (com hash no banco de dados).
-- **Segurança Avançada:**
-    - Proteção contra _Timing Attacks_ (Enumeração de Usuários) utilizando hashes dummy.
-    - Criptografia de senhas utilizando Argon2.
-    - Auditoria de segurança com registro de tentativas de login (Sucesso/Falha) para bloqueio de Força Bruta.
-- **Rate Limiting Resiliente (Fail-Open):** Limitação de requisições por IP e por Conta utilizando **Redis**. Caso a infraestrutura do Redis caia, o sistema faz um _fallback_ automático e transparente para a memória local, garantindo que a API continue funcionando sem travar os usuários legítimos.
-- **Arquitetura Limpa (Clean Architecture):** Separação clara de responsabilidades (Controllers, Services, Repositories, Domain) utilizando Injeção de Dependências (Composition Root).
-- **Validação de Dados:** Middlewares dedicados para validação rigorosa de _inputs_.
-- **Tratamento de Erros Centralizado:** Captura de exceções assíncronas de forma padronizada.
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Linguagem:** TypeScript / Node.js
-- **Framework HTTP:** Express
-- **Banco de Dados:** PostgreSQL
-- **ORM:** Drizzle ORM
-- **Cache / Rate Limit:** Redis (ioredis + express-rate-limit)
-- **Infraestrutura:** Docker & Docker Compose
+Este projeto é um boilerplate de API robusto desenvolvido em **Node.js** com **TypeScript** e **Express**, estruturado com base em princípios de Arquitetura Limpa, Domain-Driven Design (DDD) leve e foco rigoroso em segurança, resiliência e testabilidade.
 
 ---
 
-## 📜 Scripts Disponíveis (Comandos Úteis)
+## 🚀 Tecnologias e Stack
 
-No diretório raiz do projeto, você pode executar os seguintes comandos através do seu gerenciador de pacotes (npm, yarn, pnpm):
+- **Linguagem:** TypeScript
+- **Framework HTTP:** Express[cite: 1]
+- **Banco de Dados & ORM:** PostgreSQL[cite: 1] com **Drizzle ORM**[cite: 1]
+- **Validação de Dados:** Zod[cite: 1]
+- **Segurança & Criptografia:** Argon2 (hashing de senhas)[cite: 1], JSON Web Token (JWT)[cite: 1] e Crypto (SHA-256 para hash de tokens de sessão)[cite: 1]
+- **Cache & Rate Limiting:** Redis (via ioredis)[cite: 1] com estratégia de **Fail-Open** (fallback automático em memória)[cite: 1]
+- **Observabilidade & Logs:** Pino (com rotação diária de logs e tarja de segurança contra vazamento de dados sensíveis)[cite: 1] e Sentry[cite: 1]
+- **Testes:** Vitest[cite: 1] com repositórios em memória (_In-Memory Repositories_)[cite: 1]
 
-### 💻 Desenvolvimento
+---
 
-- `npm run dev`: Inicia o servidor em ambiente de desenvolvimento com hot-reload (tsx/ts-node-dev).
-- `npm run build`: Transpila o código TypeScript para JavaScript na pasta de saída (ex: `dist`).
-- `npm start`: Inicia o servidor para o ambiente de produção (necessário rodar o build antes).
-- `npm run lint`: Executa o ESLint para encontrar e corrigir problemas de formatação no código.
+## 🛡️ Arquitetura e Padrões de Segurança
 
-### 🗄️ Banco de Dados (Drizzle ORM)
+- **Anti-Timing Attack:** Mitigação contra ataques de enumeração de e-mails em rotas sensíveis (como registro e recuperação de senha), executando o custo computacional do hash de forma incondicional[cite: 1].
+- **Rate Limiting em Camadas:** Proteção contra força bruta em rotas críticas (Login, Refresh Token, Recuperação de Senha, Confirmação de E-mail) aplicando limites tanto por Endereço IP quanto por Conta de E-mail/ID de Usuário[cite: 1].
+- **Gestão de Sessões & Refresh Tokens:** Rotação de tokens de atualização com janela de tolerância (_grace period_) para detecção de reuso malicioso e suporte a revogação global ou seletiva de dispositivos[cite: 1].
+- **Controle de Acesso Baseado em Permissões (RBAC):** Sistema granular de permissões atreladas diretamente aos usuários ou herdadas via departamentos, otimizado com cache em Redis e padrão _fail-open_[cite: 1].
 
-- `npm run db:generate`: Gera os arquivos SQL de migration baseados nas alterações feitas no seu `schema.ts`.
-- `npm run db:push`: Aplica as alterações do schema diretamente no banco de dados (ideal para desenvolvimento rápido).
-- `npm run db:migrate`: Executa as migrations geradas no banco de dados de forma segura.
-- `npm run db:studio`: Abre o painel visual do Drizzle Studio no seu navegador para gerenciar as tabelas e dados facilmente.
+---
 
-## 🚀 Como começar
+## 📁 Estrutura do Projeto
 
-### Pré-requisitos
-
-Certifique-se de ter instalado em sua máquina:
-
-- [Node.js](https://nodejs.org/en/) (v18+ recomendado)
-- [Docker e Docker Compose](https://www.docker.com/)
-
-### 1. Clonando e Instalando
-
-```bash
-# Clone o repositório
-git clone [https://github.com/seu-usuario/boilerplate-api.git](https://github.com/seu-usuario/boilerplate-api.git)
-
-# Entre no diretório
-cd boilerplate-api
-
-# Instale as dependências
-npm install
+```text
+src/
+├── @types/                 # Extensões de tipagens globais do Express (ex: Request user)[cite: 1]
+├── app/
+│   ├── app.ts              # Configuração central do Express, Sentry e Middlewares globais[cite: 1]
+│   ├── composition-root.ts # Injeção de dependências e instâncias globais de infra[cite: 1]
+│   ├── exceptions/         # Tratamento customizado de Erros Operacionais (AppError)[cite: 1]
+│   ├── http/               # Middlewares (Auth, Permissões, Validação Zod, Rate Limiter, Error Handler)[cite: 1]
+│   ├── infra/              # Provedores externos (Hash, Token, Redis, Geolocation, UserAgent, Sentry)[cite: 1]
+│   ├── schemas/            # Schemas utilitários globais (Paginação, UUID params)[cite: 1]
+│   └── utils/              # Funções utilitárias (Logger, Sanitizadores, Simulação de delay)[cite: 1]
+├── database/
+│   ├── index.ts            # Conexão com o Pool do PostgreSQL e Drizzle[cite: 1]
+│   ├── repositories.ts     # Centralização de instâncias dos repositórios do banco[cite: 1]
+│   └── schema.ts           # Definição das tabelas relacionais e enums do Drizzle[cite: 1]
+├── env/                    # Validação estrita de variáveis de ambiente com Zod[cite: 1]
+├── modules/                # Módulos de Domínio (Authentication, Users, Departments, Permissions, UserAccess)[cite: 1]
+├── routes.ts               # Hub centralizador e unificado de rotas da API[cite: 1]
+└── server.ts               # Inicialização da aplicação e verificação de saúde do banco[cite: 1]
 ```
 
-# AI TIP:
+## AI TIP:
 
 npx dumpall ./ -o context.md -e ".vscode" -e "dist" -e "logs" -e "node_modules" -e ".env.example" -e ".env.test" -e ".gitignore" -e ".prettierrc" -e "context.md" -e "eslint.config.msj" -e "package-lock.json" -e "README.md" -e "TODO.MD" -e "prompt.pdf"
 

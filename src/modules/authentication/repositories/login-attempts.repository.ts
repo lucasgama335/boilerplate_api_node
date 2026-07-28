@@ -16,7 +16,7 @@ export interface ILoginAttemptsRepository {
     ): Promise<LoginAttempt | null>;
 }
 
-export class LoginAttemptsRepository implements ILoginAttemptsRepository {
+export class DrizzleLoginAttemptsRepository implements ILoginAttemptsRepository {
     constructor(private readonly db: DatabaseType) {}
 
     async generateAttempt(
