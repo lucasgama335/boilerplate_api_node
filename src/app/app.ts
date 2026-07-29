@@ -19,6 +19,7 @@ import { routes } from '@/routes';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { errorHandler } from './http/middlewares/error-handler-middleware';
 
@@ -26,6 +27,8 @@ export const app = express();
 
 // Middlewares globais básicos
 app.set('trust proxy', env.TRUST_PROXY_HOPS); // Número reais de proxys que batem na API
+
+app.use(helmet());
 
 // Loga toda requisição (método, rota, status, duração). Antes só existia log quando
 // dava erro — não tinha como ver tráfego normal nem correlacionar uma reclamação
