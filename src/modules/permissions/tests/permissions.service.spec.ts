@@ -343,5 +343,24 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
             expect(spyDelete).toHaveBeenCalled();
         });
+
+        it('deve invalidar o cache ANTES de apagar o registro do banco', async () => {
+            const createdPermission = await permissionsRepository.create({
+                code: 'permissions:delete-order-test',
+                description: 'Permissão para teste de ordem',
+            });
+
+            const callOrder: string[] = [];
+            mockUserPermissionsService.invalidatePermissionsByPermission = vi.fn().mockImplementation(async () => {
+                callOrder.push('invalidate');
+            });
+            vi.spyOn(permissionsRepository, 'delete').mockImplementation(async () => {
+                callOrder.push('delete');
+            });
+
+            await permissionsService.delete(createdPermission.id);
+
+            expect(callOrder).toEqual(['invalidate', 'delete']);
+        });
     });
 });

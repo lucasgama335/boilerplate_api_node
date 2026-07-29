@@ -333,6 +333,22 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             expect(mockUserPermissionsService.invalidatePermissionsByDepartment).toHaveBeenCalled();
         });
 
+        it('deve invalidar o cache ANTES de apagar o registro do banco', async () => {
+            const createdDepartment = await departmentsRepository.create({ name: 'dep', description: '...' });
+
+            const callOrder: string[] = [];
+            mockUserPermissionsService.invalidatePermissionsByDepartment = vi.fn().mockImplementation(async () => {
+                callOrder.push('invalidate');
+            });
+            vi.spyOn(departmentsRepository, 'delete').mockImplementation(async () => {
+                callOrder.push('delete');
+            });
+
+            await departmentsService.delete(createdDepartment.id);
+
+            expect(callOrder).toEqual(['invalidate', 'delete']);
+        });
+
         it('deve verificar se o departamento foi deletado', async () => {
             const createdDepartment = await departmentsRepository.create({
                 name: 'departamento-3',
