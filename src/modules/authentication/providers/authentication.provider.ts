@@ -1,20 +1,17 @@
 import { IUsersRepository } from '@/modules/users/repositories/users.repository';
-// Superfície mínima do cliente Redis que esta classe usa. Evita acoplar o provider
-// ao tipo completo do ioredis e permite testar com um fake simples, sem mockar
 
-// o módulo inteiro do redis-client.
 export interface IRedisCache {
     get(key: string): Promise<string | null>;
     set(key: string, value: string, mode: 'EX', seconds: number): Promise<'OK' | null>;
     del(key: string): Promise<number>;
 }
 
-export interface IUserSessionsRevocationService {
+export interface IUserSessionsRevocationProvider {
     getRevokedAt(userId: string): Promise<Date | null>;
     revokeAllTokens(userId: string): Promise<void>;
 }
 
-export class UserSessionsRevocationService implements IUserSessionsRevocationService {
+export class UserSessionsRevocationProvider implements IUserSessionsRevocationProvider {
     constructor(
         private readonly userRepository: IUsersRepository,
         private readonly cache: IRedisCache,

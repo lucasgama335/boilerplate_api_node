@@ -1,5 +1,5 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
+import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionsService } from '../permissions.service';
 import { IPermissionsRepository } from '../repositories/permissions.repository';
@@ -9,20 +9,20 @@ import { InMemoryPermissionsRepository } from './repositories/in-memory-permissi
 describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
     let permissionsRepository: IPermissionsRepository;
 
-    let mockUserPermissionsService: IUserPermissionsService;
+    let mockUserPermissionsProvider: IUserPermissionsProvider;
 
     let permissionsService: PermissionsService;
     beforeEach(() => {
         permissionsRepository = new InMemoryPermissionsRepository();
 
-        mockUserPermissionsService = {
+        mockUserPermissionsProvider = {
             getPermissions: vi.fn(),
             invalidatePermissionsByDepartment: vi.fn(),
             invalidatePermissionsByPermission: vi.fn(),
             invalidatePermissions: vi.fn(),
         };
 
-        permissionsService = new PermissionsService(permissionsRepository, mockUserPermissionsService);
+        permissionsService = new PermissionsService(permissionsRepository, mockUserPermissionsProvider);
     });
 
     describe('[method]: #list', () => {
@@ -285,7 +285,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
                 description: 'Criar permissões',
             });
 
-            const spyInvalidate = vi.spyOn(mockUserPermissionsService, 'invalidatePermissionsByPermission');
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
             await permissionsService.update(createdPermission.id, { description: 'Atualiza permissão' });
 
             expect(spyInvalidate).not.toHaveBeenCalled();
@@ -297,7 +297,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
                 description: 'Criar permissões',
             });
 
-            const spyInvalidate = vi.spyOn(mockUserPermissionsService, 'invalidatePermissionsByPermission');
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
             await permissionsService.update(createdPermission.id, { code: 'permissions:update' });
 
             expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
@@ -337,7 +337,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             });
 
             const spyDelete = vi.spyOn(permissionsRepository, 'delete');
-            const spyInvalidate = vi.spyOn(mockUserPermissionsService, 'invalidatePermissionsByPermission');
+            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
             await permissionsService.delete(createdPermission.id);
 
             expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
@@ -351,7 +351,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             });
 
             const callOrder: string[] = [];
-            mockUserPermissionsService.invalidatePermissionsByPermission = vi.fn().mockImplementation(async () => {
+            mockUserPermissionsProvider.invalidatePermissionsByPermission = vi.fn().mockImplementation(async () => {
                 callOrder.push('invalidate');
             });
             vi.spyOn(permissionsRepository, 'delete').mockImplementation(async () => {

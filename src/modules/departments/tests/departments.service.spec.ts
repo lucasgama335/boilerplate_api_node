@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
+import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DepartmentsService } from '../departments.service';
 import { UpdateDepartmentDTO } from '../types/departments.types';
@@ -8,12 +8,12 @@ import { InMemoryDepartmentsRepository } from './repositories/in-memory-departme
 
 describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
     let departmentsRepository: InMemoryDepartmentsRepository;
-    let mockUserPermissionsService: IUserPermissionsService;
+    let mockUserPermissionsProvider: IUserPermissionsProvider;
 
     let departmentsService: DepartmentsService;
 
     beforeEach(() => {
-        mockUserPermissionsService = {
+        mockUserPermissionsProvider = {
             getPermissions: vi.fn(),
             invalidatePermissionsByDepartment: vi.fn(),
             invalidatePermissionsByPermission: vi.fn(),
@@ -21,7 +21,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
         };
 
         departmentsRepository = new InMemoryDepartmentsRepository();
-        departmentsService = new DepartmentsService(departmentsRepository, mockUserPermissionsService);
+        departmentsService = new DepartmentsService(departmentsRepository, mockUserPermissionsProvider);
     });
 
     describe('[method]: #list', () => {
@@ -285,7 +285,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             vi.spyOn(departmentsRepository, 'checkPermissionsExist').mockResolvedValue(true);
             await departmentsService.update(createdDepartment.id, { permissions: ['test-1'] });
 
-            expect(mockUserPermissionsService.invalidatePermissionsByDepartment).toHaveBeenCalled();
+            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).toHaveBeenCalled();
         });
 
         it('deve verificar se o método invalidatePermissionsByDepartment não foi chamado para invalidar as permissões globais após atualizar um departamento somente se não houver alteração de permissões', async () => {
@@ -296,7 +296,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
 
             await departmentsService.update(createdDepartment.id, { name: 'departamento-1' });
 
-            expect(mockUserPermissionsService.invalidatePermissionsByDepartment).not.toHaveBeenCalled();
+            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).not.toHaveBeenCalled();
         });
 
         it('deve retornar um objeto com o departamento atualizado', async () => {
@@ -330,14 +330,14 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
 
             await departmentsService.delete(createdDepartment.id);
 
-            expect(mockUserPermissionsService.invalidatePermissionsByDepartment).toHaveBeenCalled();
+            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).toHaveBeenCalled();
         });
 
         it('deve invalidar o cache ANTES de apagar o registro do banco', async () => {
             const createdDepartment = await departmentsRepository.create({ name: 'dep', description: '...' });
 
             const callOrder: string[] = [];
-            mockUserPermissionsService.invalidatePermissionsByDepartment = vi.fn().mockImplementation(async () => {
+            mockUserPermissionsProvider.invalidatePermissionsByDepartment = vi.fn().mockImplementation(async () => {
                 callOrder.push('invalidate');
             });
             vi.spyOn(departmentsRepository, 'delete').mockImplementation(async () => {

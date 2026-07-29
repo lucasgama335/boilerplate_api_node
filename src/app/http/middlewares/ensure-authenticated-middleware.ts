@@ -1,6 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { ITokenProvider } from '@/app/infra/token/TokenProvider';
-import { IUserSessionsRevocationService } from '@/app/services/user-sessions-revocation/UserSessionsRevocationService';
+import { ITokenProvider } from '@/app/infra/providers/token.provider';
+import { IUserSessionsRevocationProvider } from '@/modules/authentication/providers/authentication.provider';
 import { NextFunction, Request, Response } from 'express';
 
 interface TokenPayload {
@@ -9,7 +9,7 @@ interface TokenPayload {
     exp: number;
 }
 
-export function ensureAuthenticatedMiddleware(tokenProvider: ITokenProvider, userSessionRevocationProvider: IUserSessionsRevocationService) {
+export function ensureAuthenticatedMiddleware(tokenProvider: ITokenProvider, userSessionRevocationProvider: IUserSessionsRevocationProvider) {
     return async (req: Request, _res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
         if (!authHeader) {

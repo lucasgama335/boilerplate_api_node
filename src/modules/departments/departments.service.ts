@@ -1,12 +1,12 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
+import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { IDepartmentsRepository } from './repositories/departments.repository';
 import { CreateDepartmentDTO, DepartmentsFilters, DepartmentWithPermissions, UpdateDepartmentDTO } from './types/departments.types';
 
 export class DepartmentsService {
     constructor(
         private readonly departmentsRepository: IDepartmentsRepository,
-        private readonly userPermissionsService: IUserPermissionsService,
+        private readonly userPermissionsProvider: IUserPermissionsProvider,
     ) {}
 
     async list<T extends boolean>(page: number, limit: number, withPermissions?: T, filters?: DepartmentsFilters) {
@@ -102,7 +102,7 @@ export class DepartmentsService {
 
         const updatedDepartment = await this.departmentsRepository.update(id, data);
         if (hasPermissionChanges) {
-            await this.userPermissionsService.invalidatePermissionsByDepartment(id);
+            await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
         }
 
         if (!updatedDepartment) {
@@ -118,7 +118,7 @@ export class DepartmentsService {
             throw new AppError('Departamento não encontrado em nossa base de dados.', 404);
         }
 
-        await this.userPermissionsService.invalidatePermissionsByDepartment(id);
+        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
         await this.departmentsRepository.delete(id);
     }
 }

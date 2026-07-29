@@ -1,6 +1,6 @@
-import { IRedisCache, UserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { IUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { Permission } from '@/modules/permissions/types/permissions.types';
+import { IRedisCache, UserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { InMemoryUserPermissionsRepository } from '@/modules/user-access/tests/repositories/in-memory-user-access.repository';
 import { User } from '@/modules/users/types/users.types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -105,19 +105,19 @@ function buildPermission(overrides: Partial<Permission> = {}): Permission {
     };
 }
 
-describe('[UNIT TEST]: UserPermissionsService', () => {
+describe('[UNIT TEST]: UserPermissionsProvider', () => {
     let userPermissionsRepository: InMemoryUserPermissionsRepository;
     let userDepartmentsRepository: InMemoryUserDepartmentsRepository;
     let cache: InMemoryRedisCache;
 
-    let service: UserPermissionsService;
+    let service: UserPermissionsProvider;
 
     beforeEach(() => {
         userPermissionsRepository = new InMemoryUserPermissionsRepository();
         userDepartmentsRepository = new InMemoryUserDepartmentsRepository();
         cache = new InMemoryRedisCache();
 
-        service = new UserPermissionsService(userPermissionsRepository, userDepartmentsRepository, cache);
+        service = new UserPermissionsProvider(userPermissionsRepository, userDepartmentsRepository, cache);
     });
 
     describe('[method]: #getPermissions', () => {

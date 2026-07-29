@@ -5,7 +5,7 @@ export interface IHashProvider {
     compare(plainText: string, hashedValue: string): Promise<boolean>;
 }
 
-export class HashProvider implements IHashProvider {
+export class Argon2Provider implements IHashProvider {
     hash(plainText: string): Promise<string> {
         return argon2.hash(plainText);
     }

@@ -1,13 +1,8 @@
 import { IUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { IUserPermissionsRepository } from '@/modules/user-access/repositories/user-permissions.repository';
 
-export interface IUserPermissionsService {
-    // Busca a lista de permissões. Se não estiver no Redis,
-    // vai no banco (AuthorizationRepository), salva no Redis e devolve.
+export interface IUserPermissionsProvider {
     getPermissions(userId: string): Promise<string[]>;
-
-    // Apaga a chave do usuário no Redis para forçar
-    // uma nova ida ao banco na próxima requisição.
     invalidatePermissionsByDepartment(departmentId: string): Promise<void>;
     invalidatePermissionsByPermission(permissionId: string): Promise<void>;
     invalidatePermissions(userId: string): Promise<void>;
@@ -19,7 +14,7 @@ export interface IRedisCache {
     del(key: string): Promise<number>;
 }
 
-export class UserPermissionsService implements IUserPermissionsService {
+export class UserPermissionsProvider implements IUserPermissionsProvider {
     private readonly CACHE_TTL_SECONDS = 300;
     private readonly BATCH_SIZE = 500;
     constructor(

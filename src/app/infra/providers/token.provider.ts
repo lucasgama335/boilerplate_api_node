@@ -11,7 +11,7 @@ export interface ITokenProvider {
     decode(token: string): { sub: string };
 }
 
-export class TokenProvider implements ITokenProvider {
+export class JsonWebTokenProvider implements ITokenProvider {
     generate(userId: string): string {
         return jwt.sign({ sub: userId }, env.JWT_SECRET, {
             expiresIn: env.ACCESS_TOKEN_EXPIRES_AT as SignOptions['expiresIn'],

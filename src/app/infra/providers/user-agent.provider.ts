@@ -10,7 +10,7 @@ export interface IUserAgentProvider {
     parse(userAgentString: string): DeviceInfo;
 }
 
-export class UserAgentProvider implements IUserAgentProvider {
+export class UaParserJsProvider implements IUserAgentProvider {
     parse(userAgentString: string): DeviceInfo {
         const result = UAParser(userAgentString);
         return {

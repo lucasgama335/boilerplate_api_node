@@ -1,6 +1,6 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IHashProvider } from '@/app/infra/hashing/HashProvider';
-import { ITokenProvider } from '@/app/infra/token/TokenProvider';
+import { IHashProvider } from '@/app/infra/providers/hash.provider';
+import { ITokenProvider } from '@/app/infra/providers/token.provider';
 import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
 import { env } from '@/env';
 import { SafeUser, toSafeUser } from '@/modules/users/types/users.types';

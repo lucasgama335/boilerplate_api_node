@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IRedisCache, UserSessionsRevocationService } from '@/app/services/user-sessions-revocation/UserSessionsRevocationService';
+import { IRedisCache, UserSessionsRevocationProvider } from '@/modules/authentication/providers/authentication.provider';
 import { InMemoryUsersRepository } from '@/modules/users/tests/repositories/in-memory-users.repository';
 import { User } from '@/modules/users/types/users.types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,17 +57,17 @@ function buildUser(overrides: Partial<User> = {}): User {
     };
 }
 
-describe('[UNIT TEST]: UserSessionsRevocationService', () => {
+describe('[UNIT TEST]: UserSessionsRevocationProvider', () => {
     let userRepository: InMemoryUsersRepository;
     let cache: InMemoryRedisCache;
 
-    let service: UserSessionsRevocationService;
+    let service: UserSessionsRevocationProvider;
 
     beforeEach(() => {
         userRepository = new InMemoryUsersRepository();
         cache = new InMemoryRedisCache();
 
-        service = new UserSessionsRevocationService(userRepository, cache);
+        service = new UserSessionsRevocationProvider(userRepository, cache);
     });
 
     describe('[method]: #getRevokedAt', () => {

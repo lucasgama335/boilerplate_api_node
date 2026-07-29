@@ -1,12 +1,12 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
+import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { IPermissionsRepository } from './repositories/permissions.repository';
 import { CreatePermissionDTO, PaginatedPermissionsResponse, Permission, PermissionsFilters, UpdatePermissionDTO } from './types/permissions.types';
 
 export class PermissionsService {
     constructor(
         private readonly permissionsRepository: IPermissionsRepository,
-        private readonly userPermissionsService: IUserPermissionsService,
+        private readonly userPermissionsProvider: IUserPermissionsProvider,
     ) {}
 
     async list(page: number, limit: number, filters?: PermissionsFilters): Promise<PaginatedPermissionsResponse> {
@@ -88,7 +88,7 @@ export class PermissionsService {
         }
 
         if (codeChanged) {
-            await this.userPermissionsService.invalidatePermissionsByPermission(id);
+            await this.userPermissionsProvider.invalidatePermissionsByPermission(id);
         }
 
         return updatedPermission;
@@ -100,7 +100,7 @@ export class PermissionsService {
             throw new AppError('Permissão não encontrada em nossa base de dados.', 404);
         }
 
-        await this.userPermissionsService.invalidatePermissionsByPermission(id);
+        await this.userPermissionsProvider.invalidatePermissionsByPermission(id);
         await this.permissionsRepository.delete(id);
     }
 }

@@ -10,7 +10,7 @@ export interface IGeolocationProvider {
     lookup(ip: string): LocationInfo;
 }
 
-export class GeolocationProvider implements IGeolocationProvider {
+export class GeoipLiteProvider implements IGeolocationProvider {
     lookup(ip: string): LocationInfo {
         const result = geoip.lookup(ip);
 
