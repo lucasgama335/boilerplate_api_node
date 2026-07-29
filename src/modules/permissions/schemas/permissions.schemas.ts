@@ -8,12 +8,7 @@ export const permissionsCreateSchema = z.object({
 });
 
 export const permissionsUpdateSchema = z.object({
-    code: z
-        .string({ message: 'O código é obrigatório' })
-        .trim()
-        .toLowerCase() // Garante que tudo fique em minúsculas (ex: USERS:CREATE vira users:create)
-        .regex(/^[a-z0-9-]+:[a-z0-9-]+$/, 'Formato inválido. O código deve seguir o padrão recurso:ação (ex: users:create)')
-        .optional(),
+    code: z.enum(PERMISSION_CODES, 'Código de permissão desconhecido.').optional(),
     description: z.string({ error: 'O campo description é obrigatório.' }).min(5, 'O campo description deve ao menos ter 5 caracteres').optional(),
 });
 

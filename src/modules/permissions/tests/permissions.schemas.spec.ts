@@ -79,7 +79,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Schemas', () => {
 
                 expect(result.success).toBe(false);
                 if (!result.success) {
-                    expect(result.error.issues[0].message).toBe('Formato inválido. O código deve seguir o padrão recurso:ação (ex: users:create)');
+                    expect(result.error.issues[0].message).toBe('Código de permissão desconhecido.');
                 }
             });
         });
