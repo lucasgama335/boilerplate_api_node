@@ -25,25 +25,20 @@ import { errorHandler } from './http/middlewares/error-handler-middleware';
 
 export const app = express();
 
-// Middlewares globais básicos
 app.set('trust proxy', env.TRUST_PROXY_HOPS); // Número reais de proxys que batem na API
-
-app.use(helmet());
-
-// Loga toda requisição (método, rota, status, duração). Antes só existia log quando
-// dava erro — não tinha como ver tráfego normal nem correlacionar uma reclamação
-// de usuário com o que aconteceu no servidor.
+app.use(helmet()); // Camada de segurança que modifica os headers
 app.use(
+    // Loga toda requisição (método, rota, status, duração). Antes só existia log quando dava erro — não tinha como ver tráfego normal nem correlacionar uma reclamação de usuário com o que aconteceu no servidor.
     pinoHttp({
         logger,
         customLogLevel: (_req, res, err) => {
+            // classifica a gravidade dos erros a partir do status code
             if (err || res.statusCode >= 500) return 'error';
             if (res.statusCode >= 400) return 'warn';
             return 'info';
         },
     }),
 );
-
 app.use(
     cors({
         origin: env.FRONTEND_URL, // nunca '*' quando usa cookies/credentials
@@ -52,9 +47,5 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json()); // Permite que o Express entenda JSON no body da requisição
-
-// Pluga o nosso Hub Central de rotas na aplicação com o prefixo '/api'
-app.use('/api', routes);
-
-// O interceptador de erros sempre no final!
-app.use(errorHandler);
+app.use('/api', routes); // Pluga o nosso Hub Central de rotas na aplicação com o prefixo '/api'
+app.use(errorHandler); // O interceptador de erros sempre no final!
