@@ -157,14 +157,14 @@ export class RateLimiterAdapter implements IAuthRateLimiter {
 
         try {
             // loginIpLimiter.redisLimiter.resetKey(ip);
-            loginEmailLimiter.redisLimiter.resetKey(formattedEmail);
+            await loginEmailLimiter.redisLimiter.resetKey(formattedEmail);
         } catch (error) {
             logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Redis (silenciado)');
         }
 
         try {
             // loginIpLimiter.memoryLimiter.resetKey(ip);
-            loginEmailLimiter.memoryLimiter.resetKey(formattedEmail);
+            await loginEmailLimiter.memoryLimiter.resetKey(formattedEmail);
         } catch (error) {
             logger.warn({ err: error }, '[RateLimiter] Erro ao resetar chaves no Fallback (silenciado)');
         }
