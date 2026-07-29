@@ -1,4 +1,3 @@
-// shared/composition-root.ts (ou onde você já centraliza infra compartilhada)
 import { ensureAuthenticatedMiddleware } from '@/app/http/middlewares/ensure-authenticated-middleware';
 import { GeolocationProvider } from '@/app/infra/geolocation/GeolocationProvider';
 import { HashProvider } from '@/app/infra/hashing/HashProvider';
