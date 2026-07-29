@@ -118,7 +118,7 @@ export class DepartmentsService {
             throw new AppError('Departamento não encontrado em nossa base de dados.', 404);
         }
 
-        await this.departmentsRepository.delete(id);
         await this.userPermissionsService.invalidatePermissionsByDepartment(id);
+        await this.departmentsRepository.delete(id);
     }
 }
