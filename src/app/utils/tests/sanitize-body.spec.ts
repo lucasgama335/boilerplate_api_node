@@ -65,4 +65,11 @@ describe('[UNIT TEST]: Util - Sanitize Body', () => {
             { id: 2, newPassword: '[REDACTED]' },
         ]);
     });
+
+    it('deve redigir o campo oldPassword (nome real usado em changePasswordUserSchema, não currentPassword)', () => {
+        const payload = { oldPassword: 'senha-antiga-123', newPassword: 'senha-nova-456' };
+        const result = sanitizeBody(payload);
+
+        expect(result).toEqual({ oldPassword: '[REDACTED]', newPassword: '[REDACTED]' });
+    });
 });

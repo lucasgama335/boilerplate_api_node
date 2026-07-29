@@ -89,4 +89,19 @@ describe('[UNIT TEST]: Middleware - Error Handler', () => {
             message: 'Ocorreu um erro interno no servidor. Nossa equipe já foi notificada.',
         });
     });
+
+    it('deve capturar um erro de Postgres com código NÃO mapeado, reportar ao Sentry e devolver 500 genérico', () => {
+        const error = new Error('constraint desconhecida') as any;
+        error.code = '99999'; // formato válido de código Postgres, mas ausente de KNOWN_POSTGRES_ERROR_CODES
+
+        errorHandler(error, mockReq as Request, mockRes as Response, nextFunction);
+
+        expect(logger.warn).toHaveBeenCalled();
+        expect(Sentry.captureException).toHaveBeenCalledWith(error, expect.any(Object));
+        expect(mockRes.status).toHaveBeenCalledWith(500);
+        expect(mockRes.json).toHaveBeenCalledWith({
+            status: 'error',
+            message: 'Erro interno no processamento de dados.',
+        });
+    });
 });
