@@ -1,5 +1,5 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { ITokenProvider } from '@/app/infra/providers/token.provider';
+import { AppError } from '@/common/exceptions/AppError';
+import { ITokenProvider } from '@/common/infra/providers/token.provider';
 import { IUserSessionsRevocationProvider } from '@/modules/authentication/providers/authentication.provider';
 import { NextFunction, Request, Response } from 'express';
 

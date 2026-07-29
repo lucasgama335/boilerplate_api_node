@@ -1,13 +1,13 @@
-import { authMiddleware, authorize, emailConfirmationMiddleware } from '@/app/composition-root';
+import { authMiddleware, authorize, emailConfirmationMiddleware } from '@/common/composition-root';
 import {
     confirmEmailRequestIpLimiter,
     registerRequestIpLimiter,
     resendConfirmationEmailRequestIpLimiter,
     resendConfirmationRequestEmailLimiter,
-} from '@/app/http/middlewares/rate-limiter.middleware';
-import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
-import { validateParamsMiddleware } from '@/app/http/middlewares/validate-params-middleware';
-import { idParamSchema } from '@/app/schemas/common.schemas';
+} from '@/common/http/middlewares/rate-limiter.middleware';
+import { validateDataMiddleware } from '@/common/http/middlewares/validate-data-middleware';
+import { validateParamsMiddleware } from '@/common/http/middlewares/validate-params-middleware';
+import { idParamSchema } from '@/common/schemas/common.schemas';
 import { env } from '@/env';
 import { Router } from 'express';
 import { confirmEmailSchema, registerUserSchema, resendConfirmationEmailSchema } from './schemas/users.schemas';

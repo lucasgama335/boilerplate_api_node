@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
 import * as Sentry from '@sentry/node';
 import { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { ZodError, ZodIssue } from 'zod';
 import { errorHandler } from '../error-handler-middleware';
 
 // Intercepta os logs e o Sentry para evitar poluição do terminal durante os testes
-vi.mock('@/app/utils/logger', () => ({
+vi.mock('@/common/utils/logger', () => ({
     logger: { warn: vi.fn(), error: vi.fn() },
 }));
 vi.mock('@sentry/node', () => ({

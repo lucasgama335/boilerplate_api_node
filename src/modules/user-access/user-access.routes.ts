@@ -1,7 +1,7 @@
-import { authMiddleware, authorize } from '@/app/composition-root';
-import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
-import { validateParamsMiddleware } from '@/app/http/middlewares/validate-params-middleware';
-import { idParamSchema } from '@/app/schemas/common.schemas';
+import { authMiddleware, authorize } from '@/common/composition-root';
+import { validateDataMiddleware } from '@/common/http/middlewares/validate-data-middleware';
+import { validateParamsMiddleware } from '@/common/http/middlewares/validate-params-middleware';
+import { idParamSchema } from '@/common/schemas/common.schemas';
 import { Router } from 'express';
 import { setUserPermissionsDTOSchema } from './schemas/user-access.schemas';
 import { userAccessController } from './user-access.composition';

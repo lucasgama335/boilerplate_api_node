@@ -1,9 +1,9 @@
-import { ensureAuthenticatedMiddleware } from '@/app/http/middlewares/ensure-authenticated-middleware';
-import { GeoipLiteProvider } from '@/app/infra/providers/geo-location.provider';
-import { Argon2Provider } from '@/app/infra/providers/hash.provider';
-import { redisClient } from '@/app/infra/providers/redis-client.provider';
-import { JsonWebTokenProvider } from '@/app/infra/providers/token.provider';
-import { UaParserJsProvider } from '@/app/infra/providers/user-agent.provider';
+import { ensureAuthenticatedMiddleware } from '@/common/http/middlewares/ensure-authenticated-middleware';
+import { GeoipLiteProvider } from '@/common/infra/providers/geo-location.provider';
+import { Argon2Provider } from '@/common/infra/providers/hash.provider';
+import { redisClient } from '@/common/infra/providers/redis-client.provider';
+import { JsonWebTokenProvider } from '@/common/infra/providers/token.provider';
+import { UaParserJsProvider } from '@/common/infra/providers/user-agent.provider';
 import { userDepartmentsRepository, userPermissionsRepository, userRepository } from '@/database/repositories';
 import { UserSessionsRevocationProvider } from '../modules/authentication/providers/authentication.provider';
 import { UserPermissionsProvider } from '../modules/user-access/providers/user-access.provider';

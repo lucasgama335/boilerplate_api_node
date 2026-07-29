@@ -1,4 +1,4 @@
-import { AppError } from '@/app/exceptions/AppError';
+import { AppError } from '@/common/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { IPermissionsRepository } from './repositories/permissions.repository';
 import { CreatePermissionDTO, PaginatedPermissionsResponse, Permission, PermissionsFilters, UpdatePermissionDTO } from './types/permissions.types';

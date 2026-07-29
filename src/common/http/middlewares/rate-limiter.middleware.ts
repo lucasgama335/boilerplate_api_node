@@ -1,6 +1,6 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { redisClient } from '@/app/infra/providers/redis-client.provider';
-import { logger } from '@/app/utils/logger';
+import { AppError } from '@/common/exceptions/AppError';
+import { redisClient } from '@/common/infra/providers/redis-client.provider';
+import { logger } from '@/common/utils/logger';
 import { Request, RequestHandler } from 'express';
 import { rateLimit, RateLimitRequestHandler } from 'express-rate-limit';
 import { RedisStore, SendCommandFn } from 'rate-limit-redis';

@@ -1,4 +1,4 @@
-import { AppError } from '@/app/exceptions/AppError';
+import { AppError } from '@/common/exceptions/AppError';
 import { IUsersRepository } from '@/modules/users/repositories/users.repository';
 import { NextFunction, Request, Response } from 'express';
 

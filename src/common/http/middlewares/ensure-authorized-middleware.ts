@@ -1,4 +1,4 @@
-import { AppError } from '@/app/exceptions/AppError';
+import { AppError } from '@/common/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { NextFunction, Request, Response } from 'express';
 

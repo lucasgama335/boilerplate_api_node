@@ -1,10 +1,10 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { IAuthRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
-import { IGeolocationProvider } from '@/app/infra/providers/geo-location.provider';
-import { IHashProvider } from '@/app/infra/providers/hash.provider';
-import { ITokenProvider } from '@/app/infra/providers/token.provider';
-import { IUserAgentProvider } from '@/app/infra/providers/user-agent.provider';
-import { hashToken } from '@/app/utils/hash-token';
+import { AppError } from '@/common/exceptions/AppError';
+import { IAuthRateLimiter } from '@/common/http/middlewares/rate-limiter.middleware';
+import { IGeolocationProvider } from '@/common/infra/providers/geo-location.provider';
+import { IHashProvider } from '@/common/infra/providers/hash.provider';
+import { ITokenProvider } from '@/common/infra/providers/token.provider';
+import { IUserAgentProvider } from '@/common/infra/providers/user-agent.provider';
+import { hashToken } from '@/common/utils/hash-token';
 import { env } from '@/env';
 import { IUserSessionsRevocationProvider } from '@/modules/authentication/providers/authentication.provider';
 import { makeCreateUser } from '@/modules/users/tests/factories/users.factory';

@@ -1,6 +1,6 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
-import { setRefreshTokenCookie } from '@/app/utils/set-refresh-token-cookie';
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
+import { setRefreshTokenCookie } from '@/common/utils/set-refresh-token-cookie';
 import { env } from '@/env';
 import { Request, Response } from 'express';
 import { AuthenticationService } from './authentication.service';

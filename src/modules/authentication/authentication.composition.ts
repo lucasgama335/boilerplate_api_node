@@ -1,6 +1,6 @@
-import { geolocationProvider, hashProvider, tokenProvider, userAgentProvider, userSessionRevocationProvider } from '@/app/composition-root';
+import { geolocationProvider, hashProvider, tokenProvider, userAgentProvider, userSessionRevocationProvider } from '@/common/composition-root';
 
-import { authRateLimiter } from '@/app/http/middlewares/rate-limiter.middleware';
+import { authRateLimiter } from '@/common/http/middlewares/rate-limiter.middleware';
 import { loginAttemptRepository, refreshTokenRepository, userRepository } from '@/database/repositories';
 import { AuthenticationController } from './authentication.controller';
 import { AuthenticationService } from './authentication.service';

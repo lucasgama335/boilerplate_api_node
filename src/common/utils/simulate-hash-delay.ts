@@ -1,4 +1,4 @@
-import { IHashProvider } from '@/app/infra/providers/hash.provider';
+import { IHashProvider } from '@/common/infra/providers/hash.provider';
 import { env } from '@/env';
 
 // Roda um hash argon2 descartável só para gastar CPU. Precisa ser chamado

@@ -31,7 +31,7 @@ Este projeto é um boilerplate de API robusto desenvolvido em **Node.js** com **
 ```text
 src/
 ├── @types/                 # Extensões de tipagens globais do Express (ex: Request user)
-├── app/
+├── common/
 │   ├── app.ts              # Configuração central do Express, Sentry e Middlewares globais
 │   ├── composition-root.ts # Injeção de dependências e instâncias globais de infra
 │   ├── exceptions/         # Tratamento customizado de Erros Operacionais (AppError)

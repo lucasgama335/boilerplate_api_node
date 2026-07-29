@@ -1,4 +1,4 @@
-import { AppError } from '@/app/exceptions/AppError';
+import { AppError } from '@/common/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionsService } from '../permissions.service';

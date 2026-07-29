@@ -1,7 +1,7 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { IHashProvider } from '@/app/infra/providers/hash.provider';
-import { ITokenProvider } from '@/app/infra/providers/token.provider';
-import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
+import { AppError } from '@/common/exceptions/AppError';
+import { IHashProvider } from '@/common/infra/providers/hash.provider';
+import { ITokenProvider } from '@/common/infra/providers/token.provider';
+import { simulateHashDelay } from '@/common/utils/simulate-hash-delay';
 import { env } from '@/env';
 import { SafeUser, toSafeUser } from '@/modules/users/types/users.types';
 import { IUsersRepository } from './repositories/users.repository';

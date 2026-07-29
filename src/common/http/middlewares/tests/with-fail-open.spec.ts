@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
 import * as Sentry from '@sentry/node';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withFailOpen } from '../with-fail-open';
 
 // Intercepta logger e Sentry, igual ao padrão já usado em error-handler-middleware.spec.ts
-vi.mock('@/app/utils/logger', () => ({
+vi.mock('@/common/utils/logger', () => ({
     logger: { warn: vi.fn(), error: vi.fn() },
 }));
 vi.mock('@sentry/node', () => ({

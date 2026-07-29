@@ -1,4 +1,4 @@
-import { createPaginationSchema } from '@/app/schemas/common.schemas';
+import { createPaginationSchema } from '@/common/schemas/common.schemas';
 import z from 'zod';
 
 export const permissionsCreateSchema = z.object({

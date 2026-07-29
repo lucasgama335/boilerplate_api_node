@@ -1,6 +1,6 @@
-// src/app/http/middlewares/with-fail-open.ts
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
+// src/common/http/middlewares/with-fail-open.ts
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
 import * as Sentry from '@sentry/node';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 

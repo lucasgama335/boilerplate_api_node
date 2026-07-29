@@ -1,4 +1,4 @@
-import { app } from './app/app';
+import { app } from './common/app';
 import { testDatabaseConnection } from './database/index';
 import { env } from './env';
 

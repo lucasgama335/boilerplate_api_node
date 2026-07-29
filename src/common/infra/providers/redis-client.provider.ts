@@ -1,4 +1,4 @@
-import { logger } from '@/app/utils/logger';
+import { logger } from '@/common/utils/logger';
 import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 import Redis from 'ioredis';

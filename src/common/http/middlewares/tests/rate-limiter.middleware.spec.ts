@@ -20,7 +20,7 @@ vi.mock('ioredis', () => {
 });
 
 // O logger real (pino) não precisa rodar nos testes; intercepta pra não poluir o output
-vi.mock('@/app/utils/logger', () => ({
+vi.mock('@/common/utils/logger', () => ({
     logger: { warn: vi.fn(), error: vi.fn() },
 }));
 

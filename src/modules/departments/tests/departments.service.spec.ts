@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
+import { AppError } from '@/common/exceptions/AppError';
 import { IUserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DepartmentsService } from '../departments.service';

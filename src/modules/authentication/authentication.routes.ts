@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { authMiddleware, emailConfirmationMiddleware } from '@/app/composition-root';
+import { authMiddleware, emailConfirmationMiddleware } from '@/common/composition-root';
 import {
     changePasswordRequestIdLimiter,
     forgotPasswordRequestEmailLimiter,
@@ -9,8 +9,8 @@ import {
     loginRequestIpLimiter,
     refreshRequestIpLimiter,
     resetPasswordRequestIpLimiter,
-} from '@/app/http/middlewares/rate-limiter.middleware';
-import { validateDataMiddleware } from '@/app/http/middlewares/validate-data-middleware';
+} from '@/common/http/middlewares/rate-limiter.middleware';
+import { validateDataMiddleware } from '@/common/http/middlewares/validate-data-middleware';
 import { authenticationController } from './authentication.composition';
 import { authenticateUserSchema, changePasswordUserSchema, forgotPasswordSchema, logoutAllDevicesSchema, resetPasswordSchema } from './schemas/authentication.schemas';
 

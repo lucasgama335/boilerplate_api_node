@@ -1,4 +1,4 @@
-import { IHashProvider } from '@/app/infra/providers/hash.provider';
+import { IHashProvider } from '@/common/infra/providers/hash.provider';
 import { env } from '@/env';
 import { describe, expect, it, vi } from 'vitest';
 import { simulateHashDelay } from '../simulate-hash-delay';

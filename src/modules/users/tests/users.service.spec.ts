@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
-import { IHashProvider } from '@/app/infra/providers/hash.provider';
-import { ITokenProvider } from '@/app/infra/providers/token.provider';
+import { AppError } from '@/common/exceptions/AppError';
+import { IHashProvider } from '@/common/infra/providers/hash.provider';
+import { ITokenProvider } from '@/common/infra/providers/token.provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserService } from '../users.service';
 import { makeCreateUser, makeCreateUserDTO } from './factories/users.factory';

@@ -10,7 +10,7 @@ Sentry.init({
     tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE ?? defaultTracesSampleRate,
 });
 
-import { logger } from '@/app/utils/logger';
+import { logger } from '@/common/utils/logger';
 import { routes } from '@/routes';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';

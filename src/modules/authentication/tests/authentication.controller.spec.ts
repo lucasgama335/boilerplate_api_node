@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
 import { env } from '@/env';
 import { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { AuthenticationController } from '../authentication.controller';
 import { AuthenticationService } from '../authentication.service';
 
 // Mockamos o logger para podermos espionar se os erros silenciosos estão sendo registrados
-vi.mock('@/app/utils/logger', () => ({
+vi.mock('@/common/utils/logger', () => ({
     logger: {
         warn: vi.fn(),
         error: vi.fn(),

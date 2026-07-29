@@ -1,6 +1,6 @@
-import { AppError } from '@/app/exceptions/AppError';
-import { logger } from '@/app/utils/logger';
-import { sanitizeBody } from '@/app/utils/sanitize-body';
+import { AppError } from '@/common/exceptions/AppError';
+import { logger } from '@/common/utils/logger';
+import { sanitizeBody } from '@/common/utils/sanitize-body';
 import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 import { NextFunction, Request, Response } from 'express';
