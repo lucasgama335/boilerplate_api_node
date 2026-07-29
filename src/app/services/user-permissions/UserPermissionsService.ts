@@ -21,7 +21,7 @@ export interface IRedisCache {
 
 export class UserPermissionsService implements IUserPermissionsService {
     private readonly CACHE_TTL_SECONDS = 300;
-
+    private readonly BATCH_SIZE = 500;
     constructor(
         private readonly userPermissionsRepository: IUserPermissionsRepository,
         private readonly userDepartmentsRepository: IUserDepartmentsRepository,
@@ -58,11 +58,9 @@ export class UserPermissionsService implements IUserPermissionsService {
     async invalidatePermissionsByDepartment(departmentId: string): Promise<void> {
         const usersTemps = await this.userDepartmentsRepository.getDepartmentUsers(departmentId);
 
-        const BATCH_SIZE = 500;
-
-        for (let i = 0; i < usersTemps.length; i += BATCH_SIZE) {
-            const batch = usersTemps.slice(i, i + BATCH_SIZE);
-
+        // Dispara requisições em lotes paralelos (Batching)
+        for (let i = 0; i < usersTemps.length; i += this.BATCH_SIZE) {
+            const batch = usersTemps.slice(i, i + this.BATCH_SIZE);
             await Promise.all(batch.map((userId) => this.invalidatePermissions(userId)));
         }
     }
@@ -70,11 +68,9 @@ export class UserPermissionsService implements IUserPermissionsService {
     async invalidatePermissionsByPermission(permissionId: string): Promise<void> {
         const affectedUserIds = await this.userPermissionsRepository.getUserIdsByPermissionId(permissionId);
 
-        const BATCH_SIZE = 500;
-
-        for (let i = 0; i < affectedUserIds.length; i += BATCH_SIZE) {
-            const batch = affectedUserIds.slice(i, i + BATCH_SIZE);
-
+        // Dispara requisições em lotes paralelos (Batching)
+        for (let i = 0; i < affectedUserIds.length; i += this.BATCH_SIZE) {
+            const batch = affectedUserIds.slice(i, i + this.BATCH_SIZE);
             await Promise.all(batch.map((userId) => this.invalidatePermissions(userId)));
         }
     }
