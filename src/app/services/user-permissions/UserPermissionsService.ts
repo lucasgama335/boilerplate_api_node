@@ -57,17 +57,12 @@ export class UserPermissionsService implements IUserPermissionsService {
 
     async invalidatePermissionsByDepartment(departmentId: string): Promise<void> {
         const usersTemps = await this.userDepartmentsRepository.getDepartmentUsers(departmentId);
-        for (const userId of usersTemps) {
-            await this.invalidatePermissions(userId);
-        }
+        await Promise.all(usersTemps.map((userId) => this.invalidatePermissions(userId)));
     }
 
     async invalidatePermissionsByPermission(permissionId: string): Promise<void> {
         const affectedUserIds = await this.userPermissionsRepository.getUserIdsByPermissionId(permissionId);
-
-        for (const userId of affectedUserIds) {
-            await this.invalidatePermissions(userId);
-        }
+        await Promise.all(affectedUserIds.map((userId) => this.invalidatePermissions(userId)));
     }
 
     async invalidatePermissions(userId: string): Promise<void> {
