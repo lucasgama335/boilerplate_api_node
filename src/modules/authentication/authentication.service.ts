@@ -4,7 +4,7 @@ import { IGeolocationProvider } from '@/app/infra/geolocation/GeolocationProvide
 import { IHashProvider } from '@/app/infra/hashing/HashProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
-import { IUserSessionsRevocationProvider } from '@/app/infra/user-sessions-revocation/UserSessionsRevocationProvider';
+import { IUserSessionsRevocationService } from '@/app/services/user-sessions-revocation/UserSessionsRevocationService';
 import { hashToken } from '@/app/utils/hash-token';
 import { logger } from '@/app/utils/logger';
 import { simulateHashDelay } from '@/app/utils/simulate-hash-delay';
@@ -25,7 +25,7 @@ export class AuthenticationService {
         private readonly tokenProvider: ITokenProvider,
         private readonly geolocationProvider: IGeolocationProvider,
         private readonly userAgentProvider: IUserAgentProvider,
-        private readonly userSessionRevocationProvider: IUserSessionsRevocationProvider,
+        private readonly userSessionRevocationService: IUserSessionsRevocationService,
         private readonly authRateLimiter: IAuthRateLimiter,
     ) {}
 
@@ -89,7 +89,7 @@ export class AuthenticationService {
             // Se passou da janela de graça, é tentativa de roubo/reuso malicioso!
             if (diffInSeconds > env.GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(refreshTokenCurrentlyInUse.userId);
-                await this.userSessionRevocationProvider.revokeAllTokens(refreshTokenCurrentlyInUse.userId);
+                await this.userSessionRevocationService.revokeAllTokens(refreshTokenCurrentlyInUse.userId);
                 throw new AppError('Sessão comprometida. Faça login novamente.', 401);
             }
 
@@ -187,7 +187,7 @@ export class AuthenticationService {
         const hashedPassword = await this.hashProvider.hash(password);
         // Atualiza a senha do usuário e revoga todos os token de acesso e refreshTokens
         await this.userRepository.updatePassword(userId, hashedPassword, user.isEmailConfirmed);
-        await this.userSessionRevocationProvider.revokeAllTokens(userId);
+        await this.userSessionRevocationService.revokeAllTokens(userId);
         await this.refreshTokenRepository.revokeAllTokensByUser(userId);
     }
 
@@ -205,7 +205,7 @@ export class AuthenticationService {
         // Atualiza a senha do usuário e revoga os tokens de acesso
         const hashedPassword = await this.hashProvider.hash(newPassword);
         const updatedUser = await this.userRepository.updatePassword(user.id, hashedPassword);
-        await this.userSessionRevocationProvider.revokeAllTokens(userId);
+        await this.userSessionRevocationService.revokeAllTokens(userId);
 
         // Se foi informado um currentRefreshToken a se preservado revoga todos os refreshToken que não o informado, salvando a sessão atual do usuário
         if (currentRefreshToken) {
@@ -233,7 +233,7 @@ export class AuthenticationService {
             const diffInSeconds = (nowDate.getTime() - new Date(tokenRecord.revokedAt).getTime()) / 1000;
             if (diffInSeconds > env.GRACE_PERIOD_SECONDS) {
                 await this.refreshTokenRepository.revokeAllTokensByUser(tokenRecord.userId);
-                await this.userSessionRevocationProvider.revokeAllTokens(tokenRecord.userId);
+                await this.userSessionRevocationService.revokeAllTokens(tokenRecord.userId);
                 throw new AppError('Refresh token inválido ou já utilizado.', 401);
             }
 
@@ -245,7 +245,7 @@ export class AuthenticationService {
 
     async revokeSessionsService(userId: string, keepCurrentSession: boolean, currentRefreshToken?: string): Promise<{ accessToken: string | null }> {
         // Invalida todos os Access Tokens emitidos no passado (incluindo o da sessão atual)
-        await this.userSessionRevocationProvider.revokeAllTokens(userId);
+        await this.userSessionRevocationService.revokeAllTokens(userId);
 
         if (keepCurrentSession && currentRefreshToken) {
             // Mantém apenas o Refresh Token atual vivo no banco

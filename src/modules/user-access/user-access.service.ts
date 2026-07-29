@@ -1,5 +1,5 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
+import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { IUsersRepository } from '../users/repositories/users.repository';
 import { SafeUserWithPermissions, toSafeUser } from '../users/types/users.types';
 import { IUserPermissionsRepository } from './repositories/user-permissions.repository';
@@ -8,7 +8,7 @@ export class UserAccessService {
     constructor(
         private readonly usersRepository: IUsersRepository,
         private readonly userPermissionsRepository: IUserPermissionsRepository,
-        private readonly userPermissionsProvider: IUserPermissionsProvider,
+        private readonly userPermissionsService: IUserPermissionsService,
     ) {}
 
     async setUserPermissions(id: string, permissions: string[], grantedById?: string): Promise<SafeUserWithPermissions> {
@@ -27,7 +27,7 @@ export class UserAccessService {
 
         // Insere as permissões do usuário
         const userWithPermissions = await this.userPermissionsRepository.setPermissions(id, permissions, grantedById);
-        await this.userPermissionsProvider.invalidatePermissions(id);
+        await this.userPermissionsService.invalidatePermissions(id);
 
         return toSafeUser(userWithPermissions);
     }

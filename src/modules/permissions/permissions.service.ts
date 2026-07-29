@@ -1,12 +1,12 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
+import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { IPermissionsRepository } from './repositories/permissions.repository';
 import { CreatePermissionDTO, PaginatedPermissionsResponse, Permission, PermissionsFilters, UpdatePermissionDTO } from './types/permissions.types';
 
 export class PermissionsService {
     constructor(
         private readonly permissionsRepository: IPermissionsRepository,
-        private readonly userPermissionsProvider: IUserPermissionsProvider,
+        private readonly userPermissionsService: IUserPermissionsService,
     ) {}
 
     async list(page: number, limit: number, filters?: PermissionsFilters): Promise<PaginatedPermissionsResponse> {
@@ -88,7 +88,7 @@ export class PermissionsService {
         }
 
         if (codeChanged) {
-            await this.userPermissionsProvider.invalidatePermissionsByPermission(id);
+            await this.userPermissionsService.invalidatePermissionsByPermission(id);
         }
 
         return updatedPermission;
@@ -101,6 +101,6 @@ export class PermissionsService {
         }
 
         await this.permissionsRepository.delete(id);
-        await this.userPermissionsProvider.invalidatePermissionsByPermission(id);
+        await this.userPermissionsService.invalidatePermissionsByPermission(id);
     }
 }

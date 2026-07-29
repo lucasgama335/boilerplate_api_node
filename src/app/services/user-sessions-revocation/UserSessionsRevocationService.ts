@@ -9,12 +9,12 @@ export interface IRedisCache {
     del(key: string): Promise<number>;
 }
 
-export interface IUserSessionsRevocationProvider {
+export interface IUserSessionsRevocationService {
     getRevokedAt(userId: string): Promise<Date | null>;
     revokeAllTokens(userId: string): Promise<void>;
 }
 
-export class UserSessionsRevocationProvider implements IUserSessionsRevocationProvider {
+export class UserSessionsRevocationService implements IUserSessionsRevocationService {
     constructor(
         private readonly userRepository: IUsersRepository,
         private readonly cache: IRedisCache,

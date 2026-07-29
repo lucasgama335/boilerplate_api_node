@@ -4,7 +4,7 @@ import { IGeolocationProvider } from '@/app/infra/geolocation/GeolocationProvide
 import { IHashProvider } from '@/app/infra/hashing/HashProvider';
 import { ITokenProvider } from '@/app/infra/token/TokenProvider';
 import { IUserAgentProvider } from '@/app/infra/user-agent/UserAgentProvider';
-import { IUserSessionsRevocationProvider } from '@/app/infra/user-sessions-revocation/UserSessionsRevocationProvider';
+import { IUserSessionsRevocationService } from '@/app/services/user-sessions-revocation/UserSessionsRevocationService';
 import { hashToken } from '@/app/utils/hash-token';
 import { env } from '@/env';
 import { makeCreateUser } from '@/modules/users/tests/factories/users.factory';
@@ -32,7 +32,7 @@ describe('loginUser', () => {
     let tokenProvider: ITokenProvider;
     let geolocationProvider: IGeolocationProvider;
     let userAgentProvider: IUserAgentProvider;
-    let userSessionsRevocationProvider: IUserSessionsRevocationProvider;
+    let userSessionsRevocationService: IUserSessionsRevocationService;
     let authRateLimiter: IAuthRateLimiter;
 
     beforeEach(() => {
@@ -59,7 +59,7 @@ describe('loginUser', () => {
         userAgentProvider = {
             parse: vi.fn().mockReturnValue(DEVICE_INFO),
         };
-        userSessionsRevocationProvider = {
+        userSessionsRevocationService = {
             getRevokedAt: vi.fn(),
             revokeAllTokens: vi.fn(),
         };
@@ -75,7 +75,7 @@ describe('loginUser', () => {
             tokenProvider,
             geolocationProvider,
             userAgentProvider,
-            userSessionsRevocationProvider,
+            userSessionsRevocationService,
             authRateLimiter,
         );
     });
@@ -292,7 +292,7 @@ describe('loginUser', () => {
             refreshTokensRepository.items[0].revokedAt = thirtySecondsAgo;
 
             const spyRevokeAll = vi.spyOn(refreshTokensRepository, 'revokeAllTokensByUser');
-            const spySessionRevoke = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spySessionRevoke = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
 
             await expect(authenticationService.refresh(rawToken, IP, USER_AGENT)).rejects.toMatchObject({
                 statusCode: 401,
@@ -483,7 +483,7 @@ describe('loginUser', () => {
             vi.spyOn(hashProvider, 'hash').mockResolvedValue('new-hashed-password');
 
             const spyUpdatePassword = vi.spyOn(usersRepository, 'updatePassword');
-            const spyRevokeAccess = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spyRevokeAccess = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
             const spyRevokeRefresh = vi.spyOn(refreshTokensRepository, 'revokeAllTokensByUser');
 
             await authenticationService.resetPassword('reset-token', 'NewPass@123');
@@ -521,11 +521,11 @@ describe('loginUser', () => {
             vi.spyOn(usersRepository, 'findById').mockResolvedValue(createdUser);
             vi.spyOn(hashProvider, 'compare').mockResolvedValue(true);
 
-            const spyUserSessionsRevocationProvider = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spyuserSessionsRevocationService = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
             const spyRefreshTokensRepository = vi.spyOn(refreshTokensRepository, 'revokeAllTokensByUser');
             await authenticationService.changeAuthenticatedUserPassword(createdUser.id, 'NewPass@123', 'my-current-refresh-token', 'correct-old-password');
 
-            expect(spyUserSessionsRevocationProvider).toHaveBeenCalledWith(createdUser.id);
+            expect(spyuserSessionsRevocationService).toHaveBeenCalledWith(createdUser.id);
             expect(spyRefreshTokensRepository).toHaveBeenCalledWith(createdUser.id, expect.any(String));
         });
 
@@ -553,7 +553,7 @@ describe('loginUser', () => {
 
             // 3. Setup dos Espiões de Banco
             const spyUsersRepository = vi.spyOn(usersRepository, 'updatePassword');
-            const spyRevokeAccess = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spyRevokeAccess = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
             const spyRevokeRefresh = vi.spyOn(refreshTokensRepository, 'revokeAllTokensByUser');
 
             // 4. Execução
@@ -659,7 +659,7 @@ describe('loginUser', () => {
             const spyRevokeAllTokensByUser = vi.spyOn(refreshTokensRepository, 'revokeAllTokensByUser');
 
             // ATENÇÃO AQUI: O revokeAllTokens global de acesso é do Provider, não do repositório
-            const spyRevokeAllAccessTokens = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spyRevokeAllAccessTokens = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
 
             // ATENÇÃO AQUI: Expect no método do Service
             await expect(authenticationService.revokeByRawToken(rawToken)).rejects.toMatchObject({
@@ -675,7 +675,7 @@ describe('loginUser', () => {
 
     describe('revokeSessionsService', () => {
         it('deve sempre revogar todos os access tokens (sessões) do usuário primeiro, independentemente dos parâmetros', async () => {
-            const spyRevokeAllAccessTokens = vi.spyOn(userSessionsRevocationProvider, 'revokeAllTokens');
+            const spyRevokeAllAccessTokens = vi.spyOn(userSessionsRevocationService, 'revokeAllTokens');
             await authenticationService.revokeSessionsService('user-1', false);
 
             expect(spyRevokeAllAccessTokens).toHaveBeenCalledWith('user-1');

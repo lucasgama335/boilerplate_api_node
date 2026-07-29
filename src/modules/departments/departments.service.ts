@@ -1,12 +1,12 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
+import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { IDepartmentsRepository } from './repositories/departments.repository';
 import { CreateDepartmentDTO, DepartmentsFilters, DepartmentWithPermissions, UpdateDepartmentDTO } from './types/departments.types';
 
 export class DepartmentsService {
     constructor(
         private readonly departmentsRepository: IDepartmentsRepository,
-        private readonly userPermissionsProvider: IUserPermissionsProvider,
+        private readonly userPermissionsService: IUserPermissionsService,
     ) {}
 
     async list<T extends boolean>(page: number, limit: number, withPermissions?: T, filters?: DepartmentsFilters) {
@@ -102,7 +102,7 @@ export class DepartmentsService {
 
         const updatedDepartment = await this.departmentsRepository.update(id, data);
         if (hasPermissionChanges) {
-            await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+            await this.userPermissionsService.invalidatePermissionsByDepartment(id);
         }
 
         if (!updatedDepartment) {
@@ -119,6 +119,6 @@ export class DepartmentsService {
         }
 
         await this.departmentsRepository.delete(id);
-        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+        await this.userPermissionsService.invalidatePermissionsByDepartment(id);
     }
 }

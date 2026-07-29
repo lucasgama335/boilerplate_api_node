@@ -1,8 +1,8 @@
 import { AppError } from '@/app/exceptions/AppError';
-import { IUserPermissionsProvider } from '@/app/infra/user-permissions-provider/UserPermissionsProvider';
+import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { NextFunction, Request, Response } from 'express';
 
-export function ensureAuthorizedMiddleware(permissionsProvider: IUserPermissionsProvider, requiredPermissions: string[]) {
+export function ensureAuthorizedMiddleware(permissionsProvider: IUserPermissionsService, requiredPermissions: string[]) {
     return async (req: Request, _res: Response, next: NextFunction) => {
         const userId = req.user?.id;
 

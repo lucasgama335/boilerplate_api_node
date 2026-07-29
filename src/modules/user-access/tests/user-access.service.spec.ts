@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppError } from '@/app/exceptions/AppError';
+import { IUserPermissionsService } from '@/app/services/user-permissions/UserPermissionsService';
 import { makeCreateUser } from '@/modules/users/tests/factories/users.factory';
 import { InMemoryUsersRepository } from '@/modules/users/tests/repositories/in-memory-users.repository';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +10,7 @@ import { InMemoryUserPermissionsRepository } from './repositories/in-memory-user
 describe('[UNIT TEST]: Módulo de User Access - Service', () => {
     let usersRepository: InMemoryUsersRepository;
     let userPermissionsRepository: InMemoryUserPermissionsRepository;
-    let mockUserPermissionsProvider: any;
+    let mockUserPermissionsService: IUserPermissionsService;
 
     let userAccessService: UserAccessService;
 
@@ -17,13 +18,14 @@ describe('[UNIT TEST]: Módulo de User Access - Service', () => {
         usersRepository = new InMemoryUsersRepository();
         userPermissionsRepository = new InMemoryUserPermissionsRepository();
 
-        mockUserPermissionsProvider = {
+        mockUserPermissionsService = {
             invalidatePermissions: vi.fn(),
             getPermissions: vi.fn(),
             invalidatePermissionsByDepartment: vi.fn(),
+            invalidatePermissionsByPermission: vi.fn(),
         };
 
-        userAccessService = new UserAccessService(usersRepository, userPermissionsRepository, mockUserPermissionsProvider);
+        userAccessService = new UserAccessService(usersRepository, userPermissionsRepository, mockUserPermissionsService);
     });
 
     describe('[method]: #setUserPermissions', () => {
@@ -81,7 +83,7 @@ describe('[UNIT TEST]: Módulo de User Access - Service', () => {
             expect(savedPerms).toEqual(['perm-1', 'perm-2']);
 
             // 6. Asserções de Invalidação de Cache
-            expect(mockUserPermissionsProvider.invalidatePermissions).toHaveBeenCalledWith(createdUser.id);
+            expect(mockUserPermissionsService.invalidatePermissions).toHaveBeenCalledWith(createdUser.id);
         });
     });
 });
