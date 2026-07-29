@@ -2,13 +2,9 @@ import { env } from '@/env';
 import * as Sentry from '@sentry/node';
 
 // Inicialize o Sentry o mais cedo possível
-// Se SENTRY_TRACES_SAMPLE_RATE não for definida, cai no default por ambiente:
-// produção amostra 20% das transações (suficiente pra ter sinal estatístico sem
-// pagar o custo de rastrear cada requisição); fora de produção amostra tudo,
-// já que o volume de tráfego é baixo o bastante pra isso não custar nada.
 const defaultTracesSampleRate = env.NODE_ENV === 'production' ? 0.2 : 1.0;
 Sentry.init({
-    dsn: env.SENTRY_DSN, // Você pega essa URL gratuita criando uma conta no Sentry.io
+    dsn: env.SENTRY_DSN,
     environment: env.NODE_ENV || 'development',
     enableLogs: true,
     tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE ?? defaultTracesSampleRate,
