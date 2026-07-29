@@ -13,28 +13,13 @@ describe('[UNIT TEST]: Módulo de Permissões - Schemas', () => {
 
                 expect(result.success).toBe(false);
                 if (!result.success) {
-                    expect(result.error.issues[0].message).toBe('O código é obrigatório');
+                    expect(result.error.issues[0].message).toBe('Código de permissão desconhecido.');
                 }
             });
 
-            it('deve transformar o code para minúsculas', () => {
+            it('deve rejeitar o code se for um código desconhecido da aplicação', () => {
                 const payload = {
-                    code: 'USERS:CREATE',
-                    description: 'Criar usuários',
-                };
-
-                const result = permissionsCreateSchema.safeParse(payload);
-
-                expect(result.success).toBe(true);
-
-                if (result.success) {
-                    expect(result.data.code).toBe('users:create');
-                }
-            });
-
-            it('deve rejeitar o code se não seguir o padrão recurso:acao', () => {
-                const payload = {
-                    code: 'users',
+                    code: 'users:teste',
                     description: 'Criar usuários',
                 };
 
@@ -42,7 +27,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Schemas', () => {
 
                 expect(result.success).toBe(false);
                 if (!result.success) {
-                    expect(result.error.issues[0].message).toBe('Formato inválido. O código deve seguir o padrão recurso:ação (ex: users:create)');
+                    expect(result.error.issues[0].message).toBe('Código de permissão desconhecido.');
                 }
             });
         });
