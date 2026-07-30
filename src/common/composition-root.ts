@@ -5,7 +5,6 @@ import { JsonWebTokenProvider } from '@/common/infra/providers/token.provider';
 import { UaParserJsProvider } from '@/common/infra/providers/user-agent.provider';
 import { redisClient } from '@/common/infra/redis-client.provider';
 import { userDepartmentsRepository, userPermissionsRepository, userRepository } from '@/database/repositories';
-import { PermissionCode } from '@/modules/permissions/constants/permission-codes';
 import { UserSessionsRevocationProvider } from '../modules/authentication/providers/authentication.provider';
 import { UserPermissionsProvider } from '../modules/user-access/providers/user-access.provider';
 import { ensureAuthorizedMiddleware } from './http/middlewares/ensure-authorized-middleware';
@@ -20,4 +19,4 @@ export const userPermissionsProvider = new UserPermissionsProvider(userPermissio
 
 export const authMiddleware = ensureAuthenticatedMiddleware(tokenProvider, userSessionRevocationProvider);
 export const emailConfirmationMiddleware = ensureEmailConfirmedMiddleware(userRepository);
-export const authorize = (requiredPermissions: PermissionCode[]) => ensureAuthorizedMiddleware(userPermissionsProvider, requiredPermissions);
+export const authorize = (requiredPermissions: string[]) => ensureAuthorizedMiddleware(userPermissionsProvider, requiredPermissions);
