@@ -100,7 +100,8 @@ export class PermissionsService {
             throw new AppError('Permissão não encontrada em nossa base de dados.', 404);
         }
 
-        await this.userPermissionsProvider.invalidatePermissionsByPermission(id);
+        const affectedUserIds = await this.userPermissionsProvider.getAffectedUserIdsByPermission(id);
         await this.permissionsRepository.delete(id);
+        await this.userPermissionsProvider.invalidatePermissionsForUsers(affectedUserIds);
     }
 }

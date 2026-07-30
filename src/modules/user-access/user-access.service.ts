@@ -27,7 +27,7 @@ export class UserAccessService {
             }
         }
 
-        // Insere as permissões do usuário
+        // Insere as permissões do usuário e invalida as permissões anteriores
         const userWithPermissions = await this.userPermissionsRepository.setPermissions(id, permissions, grantedById);
         await this.userPermissionsProvider.invalidatePermissions(id);
 

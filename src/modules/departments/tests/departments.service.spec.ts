@@ -18,6 +18,9 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             invalidatePermissionsByDepartment: vi.fn(),
             invalidatePermissionsByPermission: vi.fn(),
             invalidatePermissions: vi.fn(),
+            invalidatePermissionsForUsers: vi.fn(),
+            getAffectedUserIdsByDepartment: vi.fn().mockResolvedValue([]),
+            getAffectedUserIdsByPermission: vi.fn().mockResolvedValue([]),
         };
 
         departmentsRepository = new InMemoryDepartmentsRepository();
@@ -322,7 +325,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
             });
         });
 
-        it('deve verificar se o método invalidatePermissionsByDepartment foi chamado para invalidar as permissões globais após deletar um departamento', async () => {
+        it('deve capturar os usuários afetados e invalidar o cache deles ao deletar um departamento', async () => {
             const createdDepartment = await departmentsRepository.create({
                 name: 'departamento-3',
                 description: 'description test 2',
@@ -330,14 +333,19 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
 
             await departmentsService.delete(createdDepartment.id);
 
-            expect(mockUserPermissionsProvider.invalidatePermissionsByDepartment).toHaveBeenCalled();
+            expect(mockUserPermissionsProvider.getAffectedUserIdsByDepartment).toHaveBeenCalledWith(createdDepartment.id);
+            expect(mockUserPermissionsProvider.invalidatePermissionsForUsers).toHaveBeenCalled();
         });
 
-        it('deve invalidar o cache ANTES de apagar o registro do banco', async () => {
+        it('deve capturar os usuários afetados ANTES de apagar o registro (o cascade apaga o vínculo junto) e só invalidar o cache DEPOIS', async () => {
             const createdDepartment = await departmentsRepository.create({ name: 'dep', description: '...' });
 
             const callOrder: string[] = [];
-            mockUserPermissionsProvider.invalidatePermissionsByDepartment = vi.fn().mockImplementation(async () => {
+            mockUserPermissionsProvider.getAffectedUserIdsByDepartment = vi.fn().mockImplementation(async () => {
+                callOrder.push('getAffectedUserIds');
+                return [];
+            });
+            mockUserPermissionsProvider.invalidatePermissionsForUsers = vi.fn().mockImplementation(async () => {
                 callOrder.push('invalidate');
             });
             vi.spyOn(departmentsRepository, 'delete').mockImplementation(async () => {
@@ -346,7 +354,7 @@ describe('[UNIT TEST]: Módulo de Departamentos - Service', () => {
 
             await departmentsService.delete(createdDepartment.id);
 
-            expect(callOrder).toEqual(['invalidate', 'delete']);
+            expect(callOrder).toEqual(['getAffectedUserIds', 'delete', 'invalidate']);
         });
 
         it('deve verificar se o departamento foi deletado', async () => {

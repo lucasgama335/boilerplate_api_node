@@ -118,7 +118,8 @@ export class DepartmentsService {
             throw new AppError('Departamento não encontrado em nossa base de dados.', 404);
         }
 
-        await this.userPermissionsProvider.invalidatePermissionsByDepartment(id);
+        const affectedUserIds = await this.userPermissionsProvider.getAffectedUserIdsByDepartment(id);
         await this.departmentsRepository.delete(id);
+        await this.userPermissionsProvider.invalidatePermissionsForUsers(affectedUserIds);
     }
 }

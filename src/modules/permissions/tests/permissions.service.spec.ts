@@ -20,6 +20,9 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             invalidatePermissionsByDepartment: vi.fn(),
             invalidatePermissionsByPermission: vi.fn(),
             invalidatePermissions: vi.fn(),
+            invalidatePermissionsForUsers: vi.fn(),
+            getAffectedUserIdsByDepartment: vi.fn().mockResolvedValue([]),
+            getAffectedUserIdsByPermission: vi.fn().mockResolvedValue([]),
         };
 
         permissionsService = new PermissionsService(permissionsRepository, mockUserPermissionsProvider);
@@ -330,28 +333,32 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
             });
         });
 
-        it('deve invalidar todos os usuários que possuem a permissão atualizada no cache', async () => {
+        it('deve capturar e invalidar o cache de todos os usuários que possuem a permissão deletada', async () => {
             const createdPermission = await permissionsRepository.create({
                 code: 'permissions:create',
                 description: 'Criar permissões',
             });
 
             const spyDelete = vi.spyOn(permissionsRepository, 'delete');
-            const spyInvalidate = vi.spyOn(mockUserPermissionsProvider, 'invalidatePermissionsByPermission');
             await permissionsService.delete(createdPermission.id);
 
-            expect(spyInvalidate).toHaveBeenCalledWith(createdPermission.id);
+            expect(mockUserPermissionsProvider.getAffectedUserIdsByPermission).toHaveBeenCalledWith(createdPermission.id);
+            expect(mockUserPermissionsProvider.invalidatePermissionsForUsers).toHaveBeenCalled();
             expect(spyDelete).toHaveBeenCalled();
         });
 
-        it('deve invalidar o cache ANTES de apagar o registro do banco', async () => {
+        it('deve capturar os usuários afetados ANTES de apagar o registro (o cascade apaga o vínculo junto) e só invalidar o cache DEPOIS', async () => {
             const createdPermission = await permissionsRepository.create({
                 code: 'permissions:delete-order-test',
                 description: 'Permissão para teste de ordem',
             });
 
             const callOrder: string[] = [];
-            mockUserPermissionsProvider.invalidatePermissionsByPermission = vi.fn().mockImplementation(async () => {
+            mockUserPermissionsProvider.getAffectedUserIdsByPermission = vi.fn().mockImplementation(async () => {
+                callOrder.push('getAffectedUserIds');
+                return [];
+            });
+            mockUserPermissionsProvider.invalidatePermissionsForUsers = vi.fn().mockImplementation(async () => {
                 callOrder.push('invalidate');
             });
             vi.spyOn(permissionsRepository, 'delete').mockImplementation(async () => {
@@ -360,7 +367,7 @@ describe('[UNIT TEST]: Módulo de Permissões - Service', () => {
 
             await permissionsService.delete(createdPermission.id);
 
-            expect(callOrder).toEqual(['invalidate', 'delete']);
+            expect(callOrder).toEqual(['getAffectedUserIds', 'delete', 'invalidate']);
         });
     });
 });

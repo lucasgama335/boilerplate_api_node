@@ -3,9 +3,12 @@ import { IUserPermissionsRepository } from '@/modules/user-access/repositories/u
 
 export interface IUserPermissionsProvider {
     getPermissions(userId: string): Promise<string[]>;
-    invalidatePermissionsByDepartment(departmentId: string): Promise<void>;
-    invalidatePermissionsByPermission(permissionId: string): Promise<void>;
     invalidatePermissions(userId: string): Promise<void>;
+    invalidatePermissionsForUsers(userIds: string[]): Promise<void>; // NOVO
+    getAffectedUserIdsByDepartment(departmentId: string): Promise<string[]>; // NOVO
+    getAffectedUserIdsByPermission(permissionId: string): Promise<string[]>; // NOVO
+    invalidatePermissionsByDepartment(departmentId: string): Promise<void>; // mantido — usado no update()
+    invalidatePermissionsByPermission(permissionId: string): Promise<void>; // mantido — usado no update
 }
 
 export interface IRedisCache {
@@ -50,26 +53,6 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
         return permissions;
     }
 
-    async invalidatePermissionsByDepartment(departmentId: string): Promise<void> {
-        const usersTemps = await this.userDepartmentsRepository.getDepartmentUsers(departmentId);
-
-        // Dispara requisições em lotes paralelos (Batching)
-        for (let i = 0; i < usersTemps.length; i += this.BATCH_SIZE) {
-            const batch = usersTemps.slice(i, i + this.BATCH_SIZE);
-            await Promise.all(batch.map((userId) => this.invalidatePermissions(userId)));
-        }
-    }
-
-    async invalidatePermissionsByPermission(permissionId: string): Promise<void> {
-        const affectedUserIds = await this.userPermissionsRepository.getUserIdsByPermissionId(permissionId);
-
-        // Dispara requisições em lotes paralelos (Batching)
-        for (let i = 0; i < affectedUserIds.length; i += this.BATCH_SIZE) {
-            const batch = affectedUserIds.slice(i, i + this.BATCH_SIZE);
-            await Promise.all(batch.map((userId) => this.invalidatePermissions(userId)));
-        }
-    }
-
     async invalidatePermissions(userId: string): Promise<void> {
         const cacheKey = `user-permissions:${userId}`;
 
@@ -79,5 +62,30 @@ export class UserPermissionsProvider implements IUserPermissionsProvider {
             // FAIL-OPEN: Se falhar ao apagar, o cache expirará naturalmente pelo TTL.
             // Isso evita que uma falha de infraestrutura quebre a lógica de revogação.
         }
+    }
+
+    async getAffectedUserIdsByDepartment(departmentId: string): Promise<string[]> {
+        return this.userDepartmentsRepository.getDepartmentUsers(departmentId);
+    }
+
+    async getAffectedUserIdsByPermission(permissionId: string): Promise<string[]> {
+        return this.userPermissionsRepository.getUserIdsByPermissionId(permissionId);
+    }
+
+    async invalidatePermissionsForUsers(userIds: string[]): Promise<void> {
+        for (let i = 0; i < userIds.length; i += this.BATCH_SIZE) {
+            const batch = userIds.slice(i, i + this.BATCH_SIZE);
+            await Promise.all(batch.map((userId) => this.invalidatePermissions(userId)));
+        }
+    }
+
+    async invalidatePermissionsByDepartment(departmentId: string): Promise<void> {
+        const userIds = await this.getAffectedUserIdsByDepartment(departmentId);
+        await this.invalidatePermissionsForUsers(userIds);
+    }
+
+    async invalidatePermissionsByPermission(permissionId: string): Promise<void> {
+        const userIds = await this.getAffectedUserIdsByPermission(permissionId);
+        await this.invalidatePermissionsForUsers(userIds);
     }
 }
