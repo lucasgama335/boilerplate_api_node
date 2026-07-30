@@ -2,9 +2,11 @@
 export const PERMISSION_CODES = [
     'users:create',
     'users:show',
+    'departments:show',
     'departments:create',
     'departments:update',
     'departments:delete',
+    'permissions:show',
     'permissions:create',
     'permissions:update',
     'permissions:delete',

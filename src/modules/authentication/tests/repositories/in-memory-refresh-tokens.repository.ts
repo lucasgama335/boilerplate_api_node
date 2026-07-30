@@ -1,4 +1,5 @@
-import { IRefreshTokensRepository, TransactionClient } from '../../repositories/refresh-tokens.repository';
+import { TransactionClient } from '@/database';
+import { IRefreshTokensRepository } from '../../repositories/refresh-tokens.repository';
 import { RefreshToken } from '../../types/authentication.types';
 
 export class InMemoryRefreshTokensRepository implements IRefreshTokensRepository {

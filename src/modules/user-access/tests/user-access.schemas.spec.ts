@@ -13,25 +13,6 @@ describe('[UNIT TEST]: Módulo de User Access - Schemas', () => {
             expect(result.success).toBe(true);
         });
 
-        it('deve passar na validação se grantedById for omitido (é opcional)', () => {
-            const payload = {
-                permissions: [crypto.randomUUID()],
-            };
-
-            const result = setUserPermissionsDTOSchema.safeParse(payload);
-            expect(result.success).toBe(true);
-        });
-
-        it('deve passar na validação se grantedById for um UUID válido', () => {
-            const payload = {
-                grantedById: crypto.randomUUID(),
-                permissions: [crypto.randomUUID()],
-            };
-
-            const result = setUserPermissionsDTOSchema.safeParse(payload);
-            expect(result.success).toBe(true);
-        });
-
         it('deve falhar se permissions não for um array', () => {
             const payload = {
                 permissions: 'nao-e-um-array',
@@ -51,20 +32,6 @@ describe('[UNIT TEST]: Módulo de User Access - Schemas', () => {
             expect(result.success).toBe(false);
             if (!result.success) {
                 expect(result.error.issues[0].message).toBe('Cada ID de permissão deve ser um UUID válido.');
-            }
-        });
-
-        it('deve falhar se grantedById for passado, mas não for um UUID válido', () => {
-            const payload = {
-                grantedById: 'id-invalido',
-                permissions: [crypto.randomUUID()],
-            };
-
-            const result = setUserPermissionsDTOSchema.safeParse(payload);
-
-            expect(result.success).toBe(false);
-            if (!result.success) {
-                expect(result.error.issues[0].message).toBe('O ID informado não é um UUID válido.');
             }
         });
     });

@@ -1,3 +1,4 @@
+import { TransactionClient } from '@/database';
 import { Permission } from '@/modules/permissions/types/permissions.types';
 import { User, UserWithPermissions } from '@/modules/users/types/users.types';
 import { IUserPermissionsRepository } from '../../repositories/user-permissions.repository';
@@ -16,6 +17,7 @@ export class InMemoryUserPermissionsRepository implements IUserPermissionsReposi
     // (usado pelo getPermissionsCode na montagem dos tokens e middlewares)
     public userDepartmentsMap: Map<string, string[]> = new Map();
     public departmentPermissionsMap: Map<string, string[]> = new Map();
+    public userDeniedPermissionsMap: Map<string, string[]> = new Map();
 
     // ---------------------------------------------------------
     // Implementação da Interface
@@ -30,32 +32,49 @@ export class InMemoryUserPermissionsRepository implements IUserPermissionsReposi
         return ids.every((id) => existingIds.includes(id));
     }
 
-    async getPermissionsByUserId(userId: string): Promise<string[]> {
-        return this.userPermissionsMap.get(userId) || [];
+    async getPermissionsByUserId(userId: string, _tx?: TransactionClient): Promise<Permission[]> {
+        const user = this.users.find((u) => u.id === userId);
+
+        if (user?.isSuperUser) {
+            return [...this.permissions];
+        }
+
+        const manualPermIds = this.userPermissionsMap.get(userId) || [];
+        const depIds = this.userDepartmentsMap.get(userId) || [];
+        const depPermIds = depIds.flatMap((dId) => this.departmentPermissionsMap.get(dId) || []);
+
+        const allPermIds = [...new Set([...manualPermIds, ...depPermIds])];
+        let allowedPermissions = this.permissions.filter((p) => allPermIds.includes(p.id));
+
+        const deniedPermIds = this.userDeniedPermissionsMap.get(userId) || [];
+        const deniedSet = new Set(deniedPermIds);
+
+        allowedPermissions = allowedPermissions.filter((perm) => !deniedSet.has(perm.id));
+
+        return allowedPermissions;
     }
 
     async getPermissionsCode(userId: string): Promise<string[]> {
         const user = this.users.find((u) => u.id === userId);
 
-        // 1. Se for Super Admin, tem acesso a tudo
         if (user?.isSuperUser) {
             return ['*'];
         }
 
-        // 2. Códigos manuais
         const manualPermIds = this.userPermissionsMap.get(userId) || [];
-
-        // 3. Códigos herdados de departamentos
         const depIds = this.userDepartmentsMap.get(userId) || [];
         const depPermIds = depIds.flatMap((dId) => this.departmentPermissionsMap.get(dId) || []);
 
-        // 4. Junta tudo e remove duplicatas (Set)
         const allPermIds = [...new Set([...manualPermIds, ...depPermIds])];
 
-        // 5. Mapeia para os códigos em texto reais das permissões (ex: "users:create")
-        const codes = this.permissions.filter((p) => allPermIds.includes(p.id)).map((p) => p.code);
+        const deniedPermIds = this.userDeniedPermissionsMap.get(userId) || [];
+        const deniedSet = new Set(deniedPermIds);
 
-        return [...new Set(codes)]; // Garantia extra contra códigos duplicados
+        const finalPermIds = allPermIds.filter((id) => !deniedSet.has(id));
+
+        const codes = this.permissions.filter((p) => finalPermIds.includes(p.id)).map((p) => p.code);
+
+        return [...new Set(codes)];
     }
 
     async getUserIdsByPermissionId(permissionId: string): Promise<string[]> {

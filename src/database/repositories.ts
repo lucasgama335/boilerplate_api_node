@@ -4,6 +4,7 @@ import { DrizzleDepartmentPermissionsRepository } from '@/modules/departments/re
 import { DrizzleDepartmentsRepository } from '@/modules/departments/repositories/departments.repository';
 import { DrizzleUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { DrizzlePermissionsRepository } from '@/modules/permissions/repositories/permissions.repository';
+import { DrizzleUserDeniedPermissionsRepository } from '@/modules/user-access/repositories/user-denied-permissions.repository';
 import { DrizzleUserPermissionsRepository } from '@/modules/user-access/repositories/user-permissions.repository';
 import { DrizzleUsersRepository } from '@/modules/users/repositories/users.repository';
 import { databaseInstance } from './index';
@@ -15,5 +16,6 @@ export const loginAttemptRepository = new DrizzleLoginAttemptsRepository(databas
 export const permissionsRepository = new DrizzlePermissionsRepository(databaseInstance);
 export const departmentsRepository = new DrizzleDepartmentsRepository(databaseInstance);
 export const userPermissionsRepository = new DrizzleUserPermissionsRepository(databaseInstance);
+export const userDeniedPermissionsRepository = new DrizzleUserDeniedPermissionsRepository(databaseInstance);
 export const departmentPermissionsRepository = new DrizzleDepartmentPermissionsRepository(databaseInstance);
 export const userDepartmentsRepository = new DrizzleUserDepartmentsRepository(databaseInstance);

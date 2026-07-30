@@ -1,5 +1,5 @@
 import { AppError } from '@/common/exceptions/AppError';
-import { redisClient } from '@/common/infra/providers/redis-client.provider';
+import { redisClient } from '@/common/infra/redis-client.provider';
 import { logger } from '@/common/utils/logger';
 import { Request, RequestHandler } from 'express';
 import { rateLimit, RateLimitRequestHandler } from 'express-rate-limit';

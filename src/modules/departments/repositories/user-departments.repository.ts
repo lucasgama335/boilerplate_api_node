@@ -1,9 +1,11 @@
 import { DatabaseType } from '@/database';
-import { userDepartments, users } from '@/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { departments, userDepartments, users } from '@/database/schema';
+import { and, eq, getTableColumns } from 'drizzle-orm';
+import { Department } from '../types/departments.types';
 
 export interface IUserDepartmentsRepository {
-    getDepartmentsByUserId(userId: string): Promise<string[]>;
+    getDepartmentsByUserId(userId: string): Promise<Department[]>;
+    getDepartmentsIdsByUserId(userId: string): Promise<string[]>;
     getDepartmentUsers(departmentId: string): Promise<string[]>;
     setDepartment(userId: string, departmentId: string, grantedById?: string): Promise<void>;
     removeDepartment(userId: string, departmentId: string): Promise<void>;
@@ -13,7 +15,18 @@ export interface IUserDepartmentsRepository {
 export class DrizzleUserDepartmentsRepository implements IUserDepartmentsRepository {
     constructor(private readonly db: DatabaseType) {}
 
-    async getDepartmentsByUserId(userId: string): Promise<string[]> {
+    async getDepartmentsByUserId(userId: string): Promise<Department[]> {
+        const departmentsColumns = getTableColumns(departments);
+        const results = await this.db
+            .select(departmentsColumns)
+            .from(userDepartments)
+            .innerJoin(departments, eq(userDepartments.departmentId, departments.id))
+            .where(eq(userDepartments.userId, userId));
+
+        return results;
+    }
+
+    async getDepartmentsIdsByUserId(userId: string): Promise<string[]> {
         const results = await this.db.select({ departmentId: userDepartments.departmentId }).from(userDepartments).where(eq(userDepartments.userId, userId));
 
         return results.map((bond) => bond.departmentId);

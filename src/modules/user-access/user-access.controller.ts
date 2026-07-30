@@ -13,4 +13,14 @@ export class UserAccessController {
 
         return res.status(201).json({ user });
     };
+
+    deny = async (req: Request, res: Response, _next: NextFunction): Promise<Response> => {
+        const { id } = req.params as { id: string };
+        const deniedById = req.user.id;
+        const { permissions } = req.body;
+
+        const user = await this.userAccessService.setUserDeniedPermissions(id, permissions, deniedById);
+
+        return res.status(201).json({ user });
+    };
 }

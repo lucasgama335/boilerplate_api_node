@@ -1,7 +1,7 @@
 import { IUserDepartmentsRepository } from '@/modules/departments/repositories/user-departments.repository';
 import { Permission } from '@/modules/permissions/types/permissions.types';
 import { IRedisCache, UserPermissionsProvider } from '@/modules/user-access/providers/user-access.provider';
-import { InMemoryUserPermissionsRepository } from '@/modules/user-access/tests/repositories/in-memory-user-access.repository';
+import { InMemoryUserPermissionsRepository } from '@/modules/user-access/tests/repositories/in-memory-user-permissions.repository';
 import { User } from '@/modules/users/types/users.types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

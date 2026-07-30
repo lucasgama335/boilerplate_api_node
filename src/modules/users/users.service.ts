@@ -15,13 +15,13 @@ export class UserService {
     ) {}
 
     async getProfile(userId: string): Promise<SafeUser> {
-        const user = await this.userRepository.findByIdWithDetails(userId);
+        const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new AppError('Usuário não encontrado.', 404);
         }
 
         const safeUser = toSafeUser(user);
-        return safeUser;
+        return { ...safeUser };
     }
 
     async registerUser(data: RegisterUserDTO): Promise<SafeUser> {
@@ -46,14 +46,14 @@ export class UserService {
             ...userData,
             passwordHash: hashedPassword,
         });
-        const confirmationToken = this.tokenProvider.generateEmailConfirmationToken(createdUser.id, false);
 
+        const confirmationToken = this.tokenProvider.generateEmailConfirmationToken(createdUser.id, false);
         if (env.NODE_ENV === 'development') {
             console.log(`📧 [EMAIL CONFIRMATION - TOKEN]: ${confirmationToken}`);
         }
         // TODO: Enviar por e-mail via EmailProvider
 
-        return toSafeUser(createdUser);
+        return { ...toSafeUser(createdUser) };
     }
 
     async confirmEmail(confirmEmailToken: string): Promise<void> {

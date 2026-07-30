@@ -1,9 +1,7 @@
-import { DatabaseType } from '@/database';
+import { DatabaseType, TransactionClient } from '@/database';
 import { refreshTokens } from '@/database/schema';
 import { and, eq, isNull, not } from 'drizzle-orm';
 import { RefreshToken } from '../types/authentication.types';
-
-export type TransactionClient = Parameters<Parameters<DatabaseType['transaction']>[0]>[0];
 
 export interface IRefreshTokensRepository {
     create(

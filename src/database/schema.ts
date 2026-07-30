@@ -147,3 +147,20 @@ export const departmentPermissions = pgTable(
     },
     (table) => [uniqueIndex('department_permissions_department_id_permission_id_idx').on(table.departmentId, table.permissionId)],
 );
+
+export const userDeniedPermissions = pgTable(
+    'user_denied_permissions',
+    {
+        id: uuid('id').defaultRandom().primaryKey(),
+        userId: uuid('user_id')
+            .references(() => users.id, { onDelete: 'cascade' })
+            .notNull(),
+        permissionId: uuid('permission_id')
+            .references(() => permissions.id, { onDelete: 'cascade' })
+            .notNull(),
+        deniedById: uuid('denied_by_id').references(() => users.id, { onDelete: 'set null' }),
+
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => [uniqueIndex('user_denied_permissions_user_id_permission_id_idx').on(table.userId, table.permissionId)],
+);

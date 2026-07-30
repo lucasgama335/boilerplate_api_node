@@ -1,79 +1,28 @@
-/* eslint-disable no-useless-assignment */
-import { Department } from '@/modules/departments/types/departments.types';
-import { Permission } from '@/modules/permissions/types/permissions.types';
 import { IUsersRepository } from '../../repositories/users.repository';
-import { CreateUserDTO, User, UserWithDepartmentsAndPermissions } from '../../types/users.types';
+import { CreateUserDTO, User } from '../../types/users.types';
 
 export class InMemoryUsersRepository implements IUsersRepository {
-    // ---------------------------------------------------------
-    // Estruturas auxiliares públicas para popular os dados nos testes
-    // ---------------------------------------------------------
     public items: User[] = [];
     public validDepartmentIds: Set<string> = new Set();
 
-    public mockDepartments: Department[] = [];
-    public mockPermissions: Permission[] = [];
-
-    // userId -> array de departmentIds
+    // Auxiliar para simular a criação de vínculos (se necessário nos testes de outro módulo)
     public userDepartmentsMap: Map<string, string[]> = new Map();
-    // userId -> array de permissionIds (permissões diretas)
-    public userPermissionsMap: Map<string, string[]> = new Map();
-    // departmentId -> array de permissionIds (permissões do setor)
-    public departmentPermissionsMap: Map<string, string[]> = new Map();
-
-    // ---------------------------------------------------------
-    // Implementação da Interface
-    // ---------------------------------------------------------
 
     async checkDepartmentsExist(ids: string[]): Promise<boolean> {
-        if (!ids || ids.length === 0) {
-            return true;
-        }
+        if (!ids || ids.length === 0) return true;
         return ids.every((id) => this.validDepartmentIds.has(id));
     }
 
     async findByEmail(email: string): Promise<User | null> {
-        const user = this.items.find((u) => u.email === email);
-        return user || null;
+        return this.items.find((u) => u.email === email) || null;
     }
 
     async findById(id: string): Promise<User | null> {
-        const user = this.items.find((u) => u.id === id);
-        return user || null;
+        return this.items.find((u) => u.id === id) || null;
     }
 
-    async findByIdWithDetails(userId: string): Promise<UserWithDepartmentsAndPermissions | null> {
-        const user = this.items.find((u) => u.id === userId);
-        if (!user) return null;
-
-        // 1. Departamentos do usuário
-        const depIds = this.userDepartmentsMap.get(userId) || [];
-        const userDeps = this.mockDepartments.filter((dep) => depIds.includes(dep.id));
-
-        // 2. Permissões Efetivas
-        let effectivePermissions: Permission[] = [];
-        if (user.isSuperUser) {
-            effectivePermissions = [...this.mockPermissions];
-        } else {
-            // A. Permissões diretas
-            const manualPermIds = this.userPermissionsMap.get(userId) || [];
-
-            // B. Permissões herdadas dos departamentos
-            const depPermIds = depIds.flatMap((dId) => this.departmentPermissionsMap.get(dId) || []);
-
-            // C. UNION (remover duplicatas usando Set)
-            const allPermIds = [...new Set([...manualPermIds, ...depPermIds])];
-            effectivePermissions = this.mockPermissions.filter((p) => allPermIds.includes(p.id));
-        }
-
-        return {
-            ...user,
-            departments: userDeps,
-            permissions: effectivePermissions,
-        };
-    }
-
-    async create(data: CreateUserDTO, _grantedById?: string): Promise<UserWithDepartmentsAndPermissions> {
+    // 👇 O Create agora retorna apenas a entidade User limpa, igual ao Drizzle
+    async create(data: CreateUserDTO, _grantedById?: string): Promise<User> {
         const { departments: departmentsList, ...userData } = data;
 
         const newUser: User = {
@@ -95,49 +44,34 @@ export class InMemoryUsersRepository implements IUsersRepository {
             this.userDepartmentsMap.set(newUser.id, departmentsList);
         }
 
-        const foundUser = await this.findByIdWithDetails(newUser.id);
-        if (!foundUser) {
-            throw new Error('User not found after creation');
-        }
-
-        return foundUser;
+        return newUser;
     }
 
     async isUserSuperAdmin(userId: string): Promise<boolean> {
-        const user = this.items.find((u) => u.id === userId);
-        return user?.isSuperUser || false;
+        return this.items.find((u) => u.id === userId)?.isSuperUser || false;
     }
 
     async getTokensRevokedAt(userId: string): Promise<Date | null> {
-        const user = this.items.find((u) => u.id === userId);
-        return user?.tokensRevokedAt || null;
+        return this.items.find((u) => u.id === userId)?.tokensRevokedAt || null;
     }
 
     async setTokensRevokedAt(userId: string, date: Date): Promise<void> {
         const user = this.items.find((u) => u.id === userId);
-        if (user) {
-            user.tokensRevokedAt = date;
-        }
+        if (user) user.tokensRevokedAt = date;
     }
 
     async updatePassword(userId: string, newPassword: string, isEmailConfirmed?: boolean): Promise<User> {
         const userIndex = this.items.findIndex((u) => u.id === userId);
-
         if (userIndex !== -1) {
             this.items[userIndex].passwordHash = newPassword;
-            if (!isEmailConfirmed) {
-                this.items[userIndex].isEmailConfirmed = true;
-            }
+            if (!isEmailConfirmed) this.items[userIndex].isEmailConfirmed = true;
         }
-
         return this.items[userIndex];
     }
 
     async updateLastLogin(userId: string, date: Date): Promise<void> {
         const user = this.items.find((u) => u.id === userId);
-        if (user) {
-            user.lastLoginAt = date;
-        }
+        if (user) user.lastLoginAt = date;
     }
 
     async confirmEmail(userId: string): Promise<void> {

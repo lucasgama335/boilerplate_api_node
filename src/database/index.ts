@@ -11,6 +11,7 @@ const pool = new Pool({
 export const databaseInstance = drizzle(pool, { schema });
 
 export type DatabaseType = typeof databaseInstance;
+export type TransactionClient = Parameters<Parameters<DatabaseType['transaction']>[0]>[0];
 export const testDatabaseConnection = async (): Promise<void> => {
     await pool.query('SELECT 1');
 };
